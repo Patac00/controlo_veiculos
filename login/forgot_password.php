@@ -1,17 +1,30 @@
+<?php
+session_start();
+include("../php/config.php");
+
+if (isset($_POST['submit'])) {
+    $email = mysqli_real_escape_string($con, $_POST['email']);
+    $password = $_POST['password'];
+
+    $result = mysqli_query($con, "SELECT * FROM utilizadores WHERE email='$email'") or die("Erro na consulta");
+    $row = mysqli_fetch_assoc($result);
+
+    if ($row) {
+        if (password_verify($password, $row['password'])) {
+            $_SESSION['nome'] = $row['nome'];
+            $_SESSION['id_utilizador'] = $row['id_utilizador'];
+            header("Location: ../html/index.php");
+            exit();
+        } else {
+            $erro = "Palavra-passe incorreta. Por favor, tente novamente.";
+        }
+    } else {
+        $erro = "Email não encontrado. Por favor, registe-se primeiro.";
+    }
+}
+?>
+
 <!DOCTYPE html>
-
-<!-- =========================================================
-* Sneat - Bootstrap 5 HTML Admin Template - Pro | v1.0.0
-==============================================================
-
-* Product Page: https://themeselection.com/products/sneat-bootstrap-html-admin-template/
-* Created by: ThemeSelection
-* License: You must have a valid license purchased in order to legally use the theme for your project.
-* Copyright ThemeSelection (https://themeselection.com)
-
-=========================================================
- -->
-<!-- beautify ignore:start -->
 <html
   lang="en"
   class="light-style customizer-hide"
@@ -75,7 +88,7 @@
             <div class="card-body">
               <!-- Logo -->
               <div class="app-brand justify-content-center">
-                <a href="index.html" class="app-brand-link gap-2">
+                <a href="login.php" class="app-brand-link gap-2">
                   <span class="app-brand-logo demo">
                     <svg
                       width="25"
@@ -137,7 +150,7 @@
               <!-- /Logo -->
               <h4 class="mb-2">Forgot Password? 🔒</h4>
               <p class="mb-4">Enter your email and we'll send you instructions to reset your password</p>
-              <form id="formAuthentication" class="mb-3" action="index.html" method="POST">
+              <form id="formAuthentication" class="mb-3" action="login.php" method="POST">
                 <div class="mb-3">
                   <label for="email" class="form-label">Email</label>
                   <input
@@ -152,7 +165,7 @@
                 <button class="btn btn-primary d-grid w-100">Send Reset Link</button>
               </form>
               <div class="text-center">
-                <a href="auth-login-basic.html" class="d-flex align-items-center justify-content-center">
+                <a href="login.php" class="d-flex align-items-center justify-content-center">
                   <i class="bx bx-chevron-left scaleX-n1-rtl bx-sm"></i>
                   Back to login
                 </a>

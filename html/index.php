@@ -93,15 +93,56 @@ if (!isset($_SESSION['id_utilizador'])) {
               </a>
             </li>
             
-            <li class="menu-header small text-uppercase"><span class="menu-header-text">Components</span></li>            
+            <li class="menu-header small text-uppercase"><span class="menu-header-text">Components</span></li>
+            
             <li class="menu-item">
               <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
-                <div data-i18n="Authentications">Authentications</div>
+                <div data-i18n="Authentications">Veiculos</div>
               </a>
               <ul class="menu-sub">
                 <li class="menu-item">
-                  <a href="php/logout.php" class="menu-link">
+                  <a href="../listas_postos\ver_lista_postos.php" class="menu-link">
+                    <div data-i18n="Basic">Lista de Veiculos</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="../listas_postos\inserir_lista.php" class="menu-link">
+                    <div data-i18n="Basic">Inserir Lista</div>
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+           
+
+            <li class="menu-item">
+              <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
+                <div data-i18n="Authentications">Listas de postos</div>
+              </a>
+              <ul class="menu-sub">
+                <li class="menu-item">
+                  <a href="../listas_postos\ver_lista_postos.php" class="menu-link">
+                    <div data-i18n="Basic">Ver Lista de Postos</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="../listas_postos\inserir_lista.php" class="menu-link">
+                    <div data-i18n="Basic">Inserir Lista</div>
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+             <li class="menu-item">
+              <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
+                <div data-i18n="Authentications">Authentication   s</div>
+              </a>
+              <ul class="menu-sub">
+                <li class="menu-item">
+                  <a href="../php/logout.php" class="menu-link">
                     <div data-i18n="Basic">Logout</div>
                   </a>
                 </li>

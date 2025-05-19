@@ -13,7 +13,7 @@ if (isset($_POST['submit'])) {
         if (password_verify($password, $row['password'])) {
             $_SESSION['nome'] = $row['nome'];
             $_SESSION['id_utilizador'] = $row['id_utilizador'];
-            header("Location: ../index.php"); // <- redireciona para a página principal
+            header("Location: ../login/login.php"); // <- redireciona para a página principal
             exit();
         } else {
             $_SESSION['erro_login'] = "Palavra-passe incorreta.";
@@ -21,7 +21,7 @@ if (isset($_POST['submit'])) {
     } else {
         $_SESSION['erro_login'] = "Email não encontrado.";
     }
-    header("Location: index.php"); // redireciona de volta para o formulário de login
+    header("Location: login.php"); // redireciona de volta para o formulário de login
     exit();
 }
 ?>
