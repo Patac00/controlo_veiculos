@@ -1,99 +1,262 @@
 <?php
-include '../php/config.php'; // conexão BD
+include '../php/config.php';
+
+$msg = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  $id_veiculo = $_POST['id_veiculo'];
-  $id_utilizador = $_POST['id_utilizador'];
-  $data_abastecimento = $_POST['data_abastecimento'];
-  $km_registados = $_POST['km_registados'];
-  $id_posto = $_POST['id_posto'];
-  $litros = $_POST['litros'];
-  $tipo_combustivel = $_POST['tipo_combustivel_id'];
-  $observacoes = $_POST['observacoes'];
-  $valor_total = $_POST['valor_total'];
+  $id_veiculo = mysqli_real_escape_string($con, $_POST['id_veiculo']);
+  $id_utilizador = mysqli_real_escape_string($con, $_POST['id_utilizador']);
+  $data_abastecimento = mysqli_real_escape_string($con, $_POST['data_abastecimento']);
+  $km_registados = mysqli_real_escape_string($con, $_POST['km_registados']);
+  $id_posto = mysqli_real_escape_string($con, $_POST['id_posto']);
+  $litros = mysqli_real_escape_string($con, $_POST['litros']);
+  $tipo_combustivel = isset($_POST['tipo_combustivel']) ? mysqli_real_escape_string($con, $_POST['tipo_combustivel']) : '';
+  $observacoes = mysqli_real_escape_string($con, $_POST['observacoes']);
+  $valor_total = mysqli_real_escape_string($con, $_POST['valor_total']);
+  $data_abastecimento_raw = mysqli_real_escape_string($con, $_POST['data_abastecimento']);
+  $data_abastecimento = date('Y-m-d H:i:s', strtotime($data_abastecimento_raw));
+
 
   $sql = "INSERT INTO abastecimentos 
-    (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, tipo_combustivel_id, observacoes, valor_total) 
+    (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, tipo_combustivel, observacoes, valor_total) 
     VALUES 
     ('$id_veiculo', '$id_utilizador', '$data_abastecimento', '$km_registados', '$id_posto', '$litros', '$tipo_combustivel', '$observacoes', '$valor_total')";
 
-  if (mysqli_query($conn, $sql)) {
-    echo "<div class='alert alert-success mt-3'>Abastecimento registado com sucesso!</div>";
+  if (mysqli_query($con, $sql)) {
+    $msg = "Abastecimento registado com sucesso!";
   } else {
-    echo "<div class='alert alert-danger mt-3'>Erro: " . mysqli_error($conn) . "</div>";
+    $msg = "Erro: " . mysqli_error($con);
   }
 }
+
+
+// Veículos
+$veiculos = [];
+$res = mysqli_query($con, "SELECT id_veiculo, matricula FROM veiculos ORDER BY matricula");
+while ($row = mysqli_fetch_assoc($res)) {
+    $veiculos[] = $row;
+}
+
+// Utilizadores
+$utilizadores = [];
+$res = mysqli_query($con, "SELECT id_utilizador, nome FROM utilizadores ORDER BY nome");
+while ($row = mysqli_fetch_assoc($res)) {
+    $utilizadores[] = $row;
+}
+
+// Postos
+$postos = [];
+$res = mysqli_query($con, "SELECT id_posto, nome FROM lista_postos ORDER BY nome");
+while ($row = mysqli_fetch_assoc($res)) {
+    $postos[] = $row;
+}
+
 ?>
 
-<div class="container mt-5">
-  <div class="col-md-10 mx-auto">
-    <div class="card">
-      <div class="card-body">
-        <div class="card-title d-flex align-items-start justify-content-between mb-3">
-          <div class="avatar flex-shrink-0">
-            <img src="../assets/img/icons/unicons/gas-pump.png" alt="Abastecimento" class="rounded" />
-          </div>
-          <h5 class="mb-0">Registar Abastecimento</h5>
-        </div>
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Registar Abastecimento</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f1f3f4;
+      margin: 0; padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 80px auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #00693e;
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type=text], input[type=number], input[type=date], select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+    }
+    button {
+      background-color: #00693e;
+      color: white;
+      padding: 10px 20px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 8px;
+      width: 100%;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #005632;
+    }
+    .msg {
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+      color: red;
+    }
+    .success {
+      color: green;
+    }
+    .back-btn {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      text-decoration: none;
+      color: #00693e;
+      font-weight: bold;
+    }
+    .back-btn:hover {
+      text-decoration: underline;
+    }
 
-        <form method="POST" class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label">Veículo</label>
-            <input type="number" name="id_veiculo" class="form-control" required>
-          </div>
+    /* CSS para Select2 */
+    .select2-container {
+      width: 100% !important;
+    }
 
-          <div class="col-md-4">
-            <label class="form-label">Utilizador</label>
-            <input type="number" name="id_utilizador" class="form-control" required>
-          </div>
+    .select2-container--default .select2-selection--single {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      height: 70px !important;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      box-sizing: border-box;
+    }
 
-          <div class="col-md-4">
-            <label class="form-label">Data</label>
-            <input type="date" name="data_abastecimento" class="form-control" required>
-          </div>
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      color: #444;
+      line-height: normal !important;
+    }
 
-          <div class="col-md-4">
-            <label class="form-label">KM Registados</label>
-            <input type="number" name="km_registados" class="form-control" required>
-          </div>
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 100%;
+      position: absolute;
+      top: 0;
+      right: 10px;
+      width: 20px;
+    }
+  </style>
+</head>
+<body>
 
-          <div class="col-md-4">
-            <label class="form-label">Posto</label>
-            <input type="number" name="id_posto" class="form-control" required>
-          </div>
+<div class="container">
+  <h2>Registar Abastecimento de Veiculos com Matricula</h2>
 
-          <div class="col-md-4">
-            <label class="form-label">Litros</label>
-            <input type="number" step="0.01" name="litros" class="form-control" required>
-          </div>
+  <?php if ($msg): ?>
+    <div class="msg <?= strpos($msg, 'sucesso') !== false ? 'success' : '' ?>"><?= $msg ?></div>
+  <?php endif; ?>
 
-          <div class="col-md-4">
-            <label class="form-label">Tipo de Combustível</label>
-            <select name="tipo_combustivel_id" class="form-select" required>
-              <option value="">Selecionar...</option>
-              <option value="Gasóleo">Gasóleo</option>
-              <option value="Gasolina">Gasolina</option>
-              <option value="GPL">GPL</option>
-              <option value="Elétrico">Elétrico</option>
-            </select>
-          </div>
+  <form method="POST">
+    <label class="form-label">Veículo</label>
+    <select name="id_veiculo" class="select2" required>
+      <option value="">Selecionar...</option>
+      <?php foreach ($veiculos as $v): ?>
+        <option value="<?= $v['id_veiculo'] ?>"><?= $v['matricula'] ?></option>
+      <?php endforeach; ?>
+    </select>
 
-          <div class="col-md-4">
-            <label class="form-label">Valor Total (€)</label>
-            <input type="number" step="0.01" name="valor_total" class="form-control" required>
-          </div>
+    <label class="form-label">Utilizador</label>
+    <select name="id_utilizador" class="select2" required>
+      <option value="">Selecionar...</option>
+      <?php foreach ($utilizadores as $u): ?>
+        <option value="<?= $u['id_utilizador'] ?>"><?= $u['nome'] ?></option>
+      <?php endforeach; ?>
+    </select>
 
-          <div class="col-12">
-            <label class="form-label">Observações</label>
-            <textarea name="observacoes" class="form-control" rows="2"></textarea>
-          </div>
+    <label>Data e Hora do Abastecimento:</label>
+    <input type="datetime-local" name="data_abastecimento" required>
 
-          <div class="col-12 text-end mt-3">
-            <button type="submit" class="btn btn-primary">Guardar Abastecimento</button>
-          </div>
-        </form>
 
+    <label>KM Atuais:</label>
+    <input type="number" name="km_registados" required>
+
+    <label class="form-label">Posto</label>
+    <select name="id_posto" class="select2" required>
+      <option value="">Selecionar...</option>
+      <?php foreach ($postos as $p): ?>
+        <option value="<?= $p['id_posto'] ?>"><?= $p['nome'] ?></option>
+      <?php endforeach; ?>
+    </select>
+
+    <label>Tipo de Combustível:</label>
+    <select name="tipo_combustivel" required>
+      <option value="">-- Selecionar --</option>
+      <option value="Gasóleo">Gasóleo</option>
+      <option value="Gasolina">Gasolina</option>
+      <option value="GPL">GPL</option>
+      <option value="Elétrico">Elétrico</option>
+    </select>
+
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+      <div style="flex: 1;">
+        <label>Litros:</label>
+        <input type="number" step="0.01" name="litros" id="litros" required>
+      </div>
+      <div style="flex: 1;">
+        <label>Preço por Litro (€):</label>
+        <input type="number" step="0.0001" name="preco_litro" id="preco_litro" required>
+      </div>
+      <div style="flex: 1;">
+        <label>Valor Total (€):</label>
+        <input type="number" step="0.01" name="valor_total" id="valor_total" required readonly>
       </div>
     </div>
-  </div>
+
+    <label>Observações:</label>
+    <textarea name="observacoes" rows="2"></textarea>
+
+    <button type="submit">Guardar Abastecimento</button>
+  </form>
+
+  <a class="back-btn" href="ver_lista_abastecimentos.php">← Ver Abastecimentos</a>
+  <a class="back-btn" href="../html/index.php">← Voltar ao Início</a>
 </div>
+
+<!-- JQuery + Select2 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+  $(document).ready(function() {
+    $('.select2').select2({
+      width: '100%',
+      placeholder: "Selecionar...",
+      allowClear: true
+    });
+  });
+
+  function calcularValorTotal() {
+  const litros = parseFloat(document.getElementById('litros').value) || 0;
+  const precoLitro = parseFloat(document.getElementById('preco_litro').value) || 0;
+  const valorTotal = litros * precoLitro;
+  document.getElementById('valor_total').value = valorTotal.toFixed(2);
+  }
+
+  document.getElementById('litros').addEventListener('input', calcularValorTotal);
+  document.getElementById('preco_litro').addEventListener('input', calcularValorTotal);
+
+</script>
+
+</body>
+</html>
