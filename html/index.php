@@ -1,9 +1,22 @@
 <?php 
 session_start();
 if (!isset($_SESSION['id_utilizador'])) {
-    header("Location: login/login.php");
+    header("Location: ../login/login.php");
     exit();
 }
+include("../php/config.php");
+
+
+$sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo'";
+$result = mysqli_query($con, $sql);
+$row = mysqli_fetch_assoc($result);
+$total_ativos = $row['total_ativos'];
+
+$sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'manutencao'";
+$result = mysqli_query($con, $sql);
+$row = mysqli_fetch_assoc($result);
+$veiculos_manutencao = $row['total_manutencao'];
+
 ?>
 
 <!DOCTYPE html>
@@ -93,7 +106,29 @@ if (!isset($_SESSION['id_utilizador'])) {
               </a>
             </li>
             
-            <li class="menu-header small text-uppercase"><span class="menu-header-text">Components</span></li>
+            <li class="menu-header small text-uppercase"><span class="menu-header-text">Abastecimentos</span></li>
+
+            <li class="menu-item">
+              <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
+                <div data-i18n="Authentications">Abastecer</div>
+              </a>
+              <ul class="menu-sub">
+                <li class="menu-item">
+                  <a href="../lista_veiculos\ver_lista_veiculos.php" class="menu-link">
+                    <div data-i18n="Basic">Lista de Abastecimentos</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="../abastecimentos\registar_abast.php" class="menu-link">
+                    <div data-i18n="Basic">Inserir Abastecimento</div>
+                  </a>
+                </li>
+              </ul>
+            </li>
+
+            <li class="menu-header small text-uppercase"><span class="menu-header-text">Veiculos</span></li>
+
             
             <li class="menu-item">
               <a href="javascript:void(0);" class="menu-link menu-toggle">
@@ -102,13 +137,13 @@ if (!isset($_SESSION['id_utilizador'])) {
               </a>
               <ul class="menu-sub">
                 <li class="menu-item">
-                  <a href="../listas_postos\ver_lista_postos.php" class="menu-link">
+                  <a href="../lista_veiculos\ver_lista_veiculos.php" class="menu-link">
                     <div data-i18n="Basic">Lista de Veiculos</div>
                   </a>
                 </li>
                 <li class="menu-item">
-                  <a href="../listas_postos\inserir_lista.php" class="menu-link">
-                    <div data-i18n="Basic">Inserir Lista</div>
+                  <a href="../lista_veiculos\inserir_veiculo.php" class="menu-link">
+                    <div data-i18n="Basic">Inserir Veiculo</div>
                   </a>
                 </li>
               </ul>
@@ -124,7 +159,7 @@ if (!isset($_SESSION['id_utilizador'])) {
               <ul class="menu-sub">
                 <li class="menu-item">
                   <a href="../listas_postos\ver_lista_postos.php" class="menu-link">
-                    <div data-i18n="Basic">Ver Lista de Postos</div>
+                    <div data-i18n="Basic">Ver Lista</div>
                   </a>
                 </li>
                 <li class="menu-item">
@@ -251,16 +286,19 @@ if (!isset($_SESSION['id_utilizador'])) {
                     <i class="bx bx-dots-vertical-rounded"></i>
                   </button>
                   <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt1">
-                    <a class="dropdown-item" href="#">+ detalhes</a>
+                    <a class="dropdown-item" href="../lista_veiculos\ver_lista_veiculos.php">+ detalhes</a>
                   </div>
                 </div>
               </div>
               <span class="fw-semibold d-block mb-1">Nº Veículos Ativos</span>
-              <h3 class="card-title mb-2"></h3>
-              <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i>%</small>
+              <h3 class="card-title mb-2"><?= $total_ativos ?></h3>
+              <small class="text-info fw-semibold">
+        <i class="bx bx-car"></i> Frota ativa e registada
+      </small>
             </div>
           </div>
         </div>
+
 
         <!-- Card 2 -->
         <div class="col-md-4 mb-4">
@@ -304,9 +342,10 @@ if (!isset($_SESSION['id_utilizador'])) {
                   </div>
                 </div>
               </div>
-              <span>Nº Veículos em manutenção</span>
-              <h3 class="card-title text-nowrap mb-1"></h3>
-              <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i>%</small>
+                    <span>Nº Veículos em manutenção</span>
+      <h3 class="card-title text-nowrap mb-1"><?php echo $veiculos_manutencao; ?></h3>
+      <small class="text-warning fw-semibold"><i class="bx bx-wrench"></i> em manutenção</small>
+    
             </div>
           </div>
         </div>
