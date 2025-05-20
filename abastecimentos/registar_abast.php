@@ -1,56 +1,83 @@
-<?php
-include '../php/config.php';
+<?php 
+session_start();
+if (!isset($_SESSION['id_utilizador'])) {
+    header("Location: ../login/login.php");
+    exit();
+}
+include("../php/config.php");
 
 $msg = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
   $id_veiculo = mysqli_real_escape_string($con, $_POST['id_veiculo']);
   $id_utilizador = mysqli_real_escape_string($con, $_POST['id_utilizador']);
-  $data_abastecimento = mysqli_real_escape_string($con, $_POST['data_abastecimento']);
-  $km_registados = mysqli_real_escape_string($con, $_POST['km_registados']);
+  $data_abastecimento = date('Y-m-d H:i:s', strtotime($_POST['data_abastecimento']));
+  $km_registados = intval($_POST['km_registados']);
+  $km_anteriores = intval($_POST['km_anteriores']); // km do hidden enviado pelo form
   $id_posto = mysqli_real_escape_string($con, $_POST['id_posto']);
-  $litros = mysqli_real_escape_string($con, $_POST['litros']);
+  $litros = floatval($_POST['litros']);
+  $preco_litro = floatval($_POST['preco_litro']);
+  $valor_total = $litros * $preco_litro;
   $tipo_combustivel = isset($_POST['tipo_combustivel']) ? mysqli_real_escape_string($con, $_POST['tipo_combustivel']) : '';
-  $observacoes = mysqli_real_escape_string($con, $_POST['observacoes']);
-  $valor_total = mysqli_real_escape_string($con, $_POST['valor_total']);
-  $data_abastecimento_raw = mysqli_real_escape_string($con, $_POST['data_abastecimento']);
-  $data_abastecimento = date('Y-m-d H:i:s', strtotime($data_abastecimento_raw));
+  $observacoes = isset($_POST['observacoes']) ? mysqli_real_escape_string($con, $_POST['observacoes']) : '';
 
-
-  $sql = "INSERT INTO abastecimentos 
-    (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, tipo_combustivel, observacoes, valor_total) 
-    VALUES 
-    ('$id_veiculo', '$id_utilizador', '$data_abastecimento', '$km_registados', '$id_posto', '$litros', '$tipo_combustivel', '$observacoes', '$valor_total')";
-
-  if (mysqli_query($con, $sql)) {
-    $msg = "Abastecimento registado com sucesso!";
+  // Validação km: o km_registados não pode ser menor que km_anteriores
+  if ($km_registados < $km_anteriores) {
+    $msg = "Erro: Os KM registados não podem ser inferiores ao último valor registado ($km_anteriores KM).";
+  } else if (
+    empty($id_veiculo) || empty($id_utilizador) || empty($data_abastecimento) ||
+    empty($km_registados) || empty($id_posto) || empty($litros) || empty($tipo_combustivel)
+  ) {
+    $msg = "Por favor preencha todos os campos obrigatórios.";
   } else {
-    $msg = "Erro: " . mysqli_error($con);
+    $sql = "INSERT INTO abastecimentos 
+      (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, tipo_combustivel, observacoes, valor_total) 
+      VALUES 
+      ('$id_veiculo', '$id_utilizador', '$data_abastecimento', '$km_registados', '$id_posto', '$litros', '$tipo_combustivel', '$observacoes', '$valor_total')";
+
+    if (mysqli_query($con, $sql)) {
+      $msg = "Abastecimento registado com sucesso!";
+    } else {
+      $msg = "Erro: " . mysqli_error($con);
+    }
   }
 }
 
+// AJAX interno para obter km e data/hora mais recente do veículo selecionado
+if (isset($_GET['acao']) && $_GET['acao'] === 'obter_km' && isset($_GET['id_veiculo'])) {
+  $id_veiculo = intval($_GET['id_veiculo']);
+  $sql = "SELECT km_registados, data_abastecimento FROM abastecimentos WHERE id_veiculo = $id_veiculo ORDER BY data_abastecimento DESC LIMIT 1";
+  $res = mysqli_query($con, $sql);
+  if ($res && mysqli_num_rows($res) > 0) {
+    $row = mysqli_fetch_assoc($res);
+    echo json_encode([
+      'km' => intval($row['km_registados']),
+      'data' => $row['data_abastecimento']
+    ]);
+  } else {
+    echo json_encode(['km' => 0, 'data' => 'Nenhum registo anterior']);
+  }
+  exit;
+}
 
-// Veículos
+// Carregar dados para selects
 $veiculos = [];
 $res = mysqli_query($con, "SELECT id_veiculo, matricula FROM veiculos ORDER BY matricula");
 while ($row = mysqli_fetch_assoc($res)) {
     $veiculos[] = $row;
 }
 
-// Utilizadores
 $utilizadores = [];
 $res = mysqli_query($con, "SELECT id_utilizador, nome FROM utilizadores ORDER BY nome");
 while ($row = mysqli_fetch_assoc($res)) {
     $utilizadores[] = $row;
 }
 
-// Postos
 $postos = [];
 $res = mysqli_query($con, "SELECT id_posto, nome FROM lista_postos ORDER BY nome");
 while ($row = mysqli_fetch_assoc($res)) {
     $postos[] = $row;
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -59,6 +86,7 @@ while ($row = mysqli_fetch_assoc($res)) {
   <meta charset="UTF-8">
   <title>Registar Abastecimento</title>
   <style>
+    /* Estilos iguais ao que tens */
     body {
       font-family: Arial, sans-serif;
       background-color: #f1f3f4;
@@ -81,7 +109,7 @@ while ($row = mysqli_fetch_assoc($res)) {
       margin-top: 15px;
       font-weight: bold;
     }
-    input[type=text], input[type=number], input[type=date], select, textarea {
+    input[type=text], input[type=number], input[type=datetime-local], select, textarea {
       width: 100%;
       padding: 10px;
       margin-top: 5px;
@@ -126,78 +154,55 @@ while ($row = mysqli_fetch_assoc($res)) {
     .back-btn:hover {
       text-decoration: underline;
     }
-
-    /* CSS para Select2 */
-    .select2-container {
-      width: 100% !important;
-    }
-
-    .select2-container--default .select2-selection--single {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      height: 70px !important;
-      display: flex;
-      align-items: center;
-      padding: 0 12px;
-      box-sizing: border-box;
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-      color: #444;
-      line-height: normal !important;
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-      height: 100%;
-      position: absolute;
-      top: 0;
-      right: 10px;
-      width: 20px;
-    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>Registar Abastecimento de Veiculos com Matricula</h2>
+  <h2>Registar Abastecimento de Veículos com Matrícula</h2>
 
   <?php if ($msg): ?>
     <div class="msg <?= strpos($msg, 'sucesso') !== false ? 'success' : '' ?>"><?= $msg ?></div>
   <?php endif; ?>
 
-  <form method="POST">
-    <label class="form-label">Veículo</label>
-    <select name="id_veiculo" class="select2" required>
+  <form method="POST" id="formAbastecimento">
+    <!-- Select Veículo -->
+    <label>Veículo</label>
+    <select name="id_veiculo" id="veiculo" required>
       <option value="">Selecionar...</option>
       <?php foreach ($veiculos as $v): ?>
         <option value="<?= $v['id_veiculo'] ?>"><?= $v['matricula'] ?></option>
       <?php endforeach; ?>
     </select>
 
-    <label class="form-label">Utilizador</label>
-    <select name="id_utilizador" class="select2" required>
-      <option value="">Selecionar...</option>
-      <?php foreach ($utilizadores as $u): ?>
-        <option value="<?= $u['id_utilizador'] ?>"><?= $u['nome'] ?></option>
-      <?php endforeach; ?>
-    </select>
+    <!-- Mostrar último KM e data -->
+    <label>Último Registo:</label>
+    <input type="text" id="ultimo_km_data" readonly value="Nenhum registo anterior">
 
+    <!-- Campo hidden para guardar km anteriores -->
+    <input type="hidden" id="km_anteriores" name="km_anteriores" value="0">
+
+    <!-- Input KM atual -->
+    <label>KM Atuais:</label>
+    <input type="number" name="km_registados" id="km_registados" required>
+
+    <!-- Select Utilizador -->
+    <input type="hidden" name="id_utilizador" value="<?= $_SESSION['id_utilizador'] ?>">
+
+    <!-- Data e Hora do Abastecimento -->
     <label>Data e Hora do Abastecimento:</label>
     <input type="datetime-local" name="data_abastecimento" required>
 
-
-    <label>KM Atuais:</label>
-    <input type="number" name="km_registados" required>
-
-    <label class="form-label">Posto</label>
-    <select name="id_posto" class="select2" required>
+    <!-- Select Posto -->
+    <label>Posto</label>
+    <select name="id_posto" required>
       <option value="">Selecionar...</option>
       <?php foreach ($postos as $p): ?>
         <option value="<?= $p['id_posto'] ?>"><?= $p['nome'] ?></option>
       <?php endforeach; ?>
     </select>
 
+    <!-- Tipo de Combustível -->
     <label>Tipo de Combustível:</label>
     <select name="tipo_combustivel" required>
       <option value="">-- Selecionar --</option>
@@ -207,6 +212,7 @@ while ($row = mysqli_fetch_assoc($res)) {
       <option value="Elétrico">Elétrico</option>
     </select>
 
+    <!-- Litros, Preço e Valor Total -->
     <div style="display: flex; gap: 10px; margin-top: 15px;">
       <div style="flex: 1;">
         <label>Litros:</label>
@@ -218,10 +224,11 @@ while ($row = mysqli_fetch_assoc($res)) {
       </div>
       <div style="flex: 1;">
         <label>Valor Total (€):</label>
-        <input type="number" step="0.01" name="valor_total" id="valor_total" required readonly>
+        <input type="number" step="0.01" name="valor_total" id="valor_total" readonly required>
       </div>
     </div>
 
+    <!-- Observações -->
     <label>Observações:</label>
     <textarea name="observacoes" rows="2"></textarea>
 
@@ -232,31 +239,58 @@ while ($row = mysqli_fetch_assoc($res)) {
   <a class="back-btn" href="../html/index.php">← Voltar ao Início</a>
 </div>
 
-<!-- JQuery + Select2 -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 <script>
-  $(document).ready(function() {
-    $('.select2').select2({
-      width: '100%',
-      placeholder: "Selecionar...",
-      allowClear: true
-    });
-  });
-
+  // Função para calcular valor total
   function calcularValorTotal() {
-  const litros = parseFloat(document.getElementById('litros').value) || 0;
-  const precoLitro = parseFloat(document.getElementById('preco_litro').value) || 0;
-  const valorTotal = litros * precoLitro;
-  document.getElementById('valor_total').value = valorTotal.toFixed(2);
+    const litros = parseFloat(document.getElementById('litros').value) || 0;
+    const precoLitro = parseFloat(document.getElementById('preco_litro').value) || 0;
+    const valorTotal = litros * precoLitro;
+    document.getElementById('valor_total').value = valorTotal.toFixed(2);
   }
 
   document.getElementById('litros').addEventListener('input', calcularValorTotal);
   document.getElementById('preco_litro').addEventListener('input', calcularValorTotal);
 
+  // Variável global para km anteriores
+  let kmAnteriores = 0;
+
+  // Quando muda o veículo, buscar último km e data via AJAX interno
+  document.getElementById('veiculo').addEventListener('change', function() {
+    const idVeiculo = this.value;
+    if (!idVeiculo) {
+      document.getElementById('ultimo_km_data').value = "Nenhum registo anterior";
+      document.getElementById('km_anteriores').value = 0;
+      kmAnteriores = 0;
+      document.getElementById('km_registados').value = '';
+      return;
+    }
+
+    fetch(`<?= basename(__FILE__) ?>?acao=obter_km&id_veiculo=${idVeiculo}`)
+      .then(response => response.json())
+      .then(data => {
+        kmAnteriores = parseInt(data.km) || 0;
+        document.getElementById('km_anteriores').value = kmAnteriores;
+        if (data.km > 0) {
+          document.getElementById('ultimo_km_data').value = `Último KM: ${data.km} | Data: ${data.data}`;
+        } else {
+          document.getElementById('ultimo_km_data').value = "Nenhum registo anterior";
+        }
+        document.getElementById('km_registados').value = '';
+      });
+  });
+
+  // Validação KM atual: não pode ser inferior ao anterior
+  document.getElementById('formAbastecimento').addEventListener('submit', function(e) {
+    const kmAtual = parseInt(document.getElementById('km_registados').value);
+    const kmAnteriores = parseInt(document.getElementById('km_anteriores').value);
+
+    if (isNaN(kmAtual) || kmAtual < kmAnteriores) {
+      e.preventDefault(); // impede submit
+      alert(`Erro: Os KM registados não podem ser inferiores ao último valor registado (${kmAnteriores} KM).`);
+    }
+  });
+
 </script>
 
-</body>
+</body> 
 </html>

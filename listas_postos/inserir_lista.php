@@ -1,6 +1,10 @@
-<?php
+<?php 
+session_start();
+if (!isset($_SESSION['id_utilizador'])) {
+    header("Location: ../login/login.php");
+    exit();
+}
 include("../php/config.php");
-
 $msg = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

@@ -1,6 +1,10 @@
-<?php
+<?php 
+session_start();
+if (!isset($_SESSION['id_utilizador'])) {
+    header("Location: ../login/login.php");
+    exit();
+}
 include("../php/config.php");
-
 $pesquisa = "";
 if (isset($_GET['pesquisa'])) {
     $pesquisa = mysqli_real_escape_string($con, $_GET['pesquisa']);
