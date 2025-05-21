@@ -7,15 +7,15 @@ if (!isset($_SESSION['id_utilizador'])) {
 include("../php/config.php");
 
 
-$sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo'";
-$result = mysqli_query($con, $sql);
-$row = mysqli_fetch_assoc($result);
-$total_ativos = $row['total_ativos'];
+#$sql = "SELECT COUNT(*) AS total_ativos FROM lista_veiculos WHERE estado = 'Ativo'";
+#$result = mysqli_query($con, $sql);
+#$row = mysqli_fetch_assoc($result);
+#$total_ativos = $row['total_ativos'];
 
-$sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'manutencao'";
-$result = mysqli_query($con, $sql);
-$row = mysqli_fetch_assoc($result);
-$veiculos_manutencao = $row['total_manutencao'];
+#$sql = "SELECT COUNT(*) AS total_manutencao FROM lista_veiculos WHERE estado = 'manutencao'";
+#$result = mysqli_query($con, $sql);
+#$row = mysqli_fetch_assoc($result);
+#$veiculos_manutencao = $row['total_manutencao'];
 
 ?>
 
@@ -122,6 +122,16 @@ $veiculos_manutencao = $row['total_manutencao'];
                 <li class="menu-item">
                   <a href="../abastecimentos\registar_abast.php" class="menu-link">
                     <div data-i18n="Basic">Inserir Abastecimento</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="../abastecimentos/importar_excel.php" class="menu-link">
+                    <div data-i18n="Basic">Importar Bomba</div>
+                  </a>
+                </li>
+                <li class="menu-item">
+                  <a href="../abastecimentos\import_vei.php" class="menu-link">
+                    <div data-i18n="Basic">Veiculo</div>
                   </a>
                 </li>
               </ul>

@@ -1,0 +1,11 @@
+{
+    "name": "ruben/controlo_veiculos",
+    "autoload": {
+        "psr-4": {
+            "Ruben\\ControloVeiculos\\": "src/"
+        }
+    },
+    "require": {
+        "phpoffice/phpspreadsheet": "^4.2"
+    }
+}
