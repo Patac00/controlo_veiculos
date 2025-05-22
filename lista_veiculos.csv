@@ -1,0 +1,333 @@
+susa;Matr�cula;Descri��o;Empresa;Tipo;Grupo;Relat�rio?
+00-RB-97;00-RB-97;R. KANGOO (F�brica);Ambipombal;Ligeiro;Comercial;Sim
+;02-NL-96;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;02-NL-98;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;02-OH-80;R. MASTER (Jardins);Ambipombal;Ligeiro;Carrinhas Mercadorias;Sim
+;02-ZS-57;PEUGEOT 308;Plurires�duos;Ligeiro;Comercial;Sim
+;03-DG-63;BMW (Gil);Particular;Ligeiro;Uso Particular;N�o
+03NL01;03-NL-01;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;03-NL-06;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;03-NL-08;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;04-CM-74;MAN;Ambipombal;Pesado;Pesado;Sim
+;05-90-IN;CITRO�N Saxo;Particular;Ligeiro;Uso Particular;N�o
+;05-UL-07;R. CLIO (J Franco);Ambipombal;Ligeiro;Comercial;Sim
+;05-UL-56;R. CLIO (Vendido);Ambipombal;Ligeiro;Comercial;N�o
+;06-40-ZH;R. CLIO;Particular;Ligeiro;Uso Particular;N�o
+;06-XX-62;MERCEDES (Sr Areias, aprov. Sr. Mota);Particular;Ligeiro;Uso Particular;N�o
+;07-GB-24;OPEL ASTRA (Pedro Jord�o) Vendido;Particular;Ligeiro;Uso Particular;N�o
+;07-UO-32;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;09-48-TC;MAN;Ambipombal;Pesado;Pesado;Sim
+;09-PA-45;R. KANGOO (BTERMEC);Btermec;Ligeiro;Comercial;Sim
+;09-SM-81;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;09-SM-82;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;09-VR-63;BMW (Vaqueiro);Particular;Ligeiro;Uso Particular;N�o
+;10-DH-84;MAN;Revalor;Pesado;Pesado;Sim
+;11-AL-49;R. KANGOO (Steve);Ambipombal;Ligeiro;Carrinhas Mercadorias;Sim
+;11-SM-66;RANGE ROVER;Ambipombal;Ligeiro;Uso Particular;Sim
+;12-AT-40;MAN;Ambipombal;Pesado;Pesado;Sim
+;12-BA-60;FORD FOCUS (Vendido);Pombaljardim;Ligeiro;Comercial;N�o
+;12-RP-34;VW Polo (Dalila);Particular;Ligeiro;Uso Particular;Sim
+;12-RP-35;VW Polo;Ambipombal;Ligeiro;Comercial;Sim
+;13-DI-65;Opel CORSA (SHADE - Alcob.);Revalor;Ligeiro;Comercial;Sim
+;13-MM-21;MERCEDES (Paulo Falc�o);Plurires�duos;Ligeiro;Uso Particular;Sim
+;14-54-UD;Carro Maria Luiza (Ordem do Sr. Mota);Outros;Ligeiro;Uso Particular;Sim
+;14-PI-46;AUDI (Vendido);Ambipombal;Ligeiro;Uso Particular;N�o
+;14-PR-63;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;14-PR-72;IVECO (Vendido);Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;N�o
+;14-UO-02;Carro Particular Nuno Gomes;Particular;Ligeiro;Uso Particular;N�o
+;15-57-NA;Mitsubishi L400 (9 lugares);For�as Robustas;Ligeiro;Comercial;Sim
+;15-98-AV;TOYOTA DYNA;Pombaljardim;Ligeiro;Carrinhas Mercadorias;Sim
+;16-FB-94;MAN;Ambipombal;Pesado;Pesado;Sim
+;16-QH-14;MERCEDES;Plurires�duos;Pesado;Pesado;Sim
+;17-GT-64;Mazda 6 (Eng. Carlos Carvalho);Particular;Ligeiro;Uso Particular;Sim
+;17-NL-84;IVECO (SHADE Algarve);Shade;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;18-JU-82;Citroen C3 (Eng. Vanessa);Particular;Ligeiro;Uso Particular;N�o
+;21-03-VD;Seat Ibiza (S�nia);Particular;Ligeiro;Uso Particular;Sim
+;22-AO-90;MERCEDES (Riquito);Particular;Ligeiro;Uso Particular;N�o
+;23-UR-36;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;24-OH-82;VOLVO;Ambipombal;Pesado;Pesado;Sim
+;24-TF-37;R. Megane (Vendido);Revalor;Ligeiro;Uso Particular;N�o
+;24-UD-91;R. KANGOO (SHADE - Jo�o Eanes);Shade;Ligeiro;Carrinhas Mercadorias;Sim
+;25-14-CR;Mitsubishi Pajero (Vendido);Pombaljardim;Ligeiro;Uso Particular;N�o
+;25-65-ZM;R. CLIO (Vendido);Pombaljardim;Ligeiro;Comercial;N�o
+;25-OJ-91;R. MASTER;Btermec;Ligeiro;Carrinhas Mercadorias;Sim
+;25-OJ-95;R. MASTER;Btermec;Ligeiro;Carrinhas Mercadorias;Sim
+;26-AF-38;CAMI�O SLIMCEI;Outros;Pesado;Pesado;N�o
+;26-VT-76;AUDI (Dra. Ana Pinho);Particular;Ligeiro;Uso Particular;Sim
+;26-ZI-73;MERCEDES (P.Socorro);Revalor;Pesado;Pesado;Sim
+;28-60-FA;VOLVO;Ambipombal;Pesado;Pesado;Sim
+;28-NZ-91;DAF;Ambipombal;Pesado;Pesado;Sim
+;28-PT-59;Fiat Punto;Particular;Ligeiro;Uso Particular;N�o
+;29-SU-69;Dumper Alugado Ribtejo;Outros;M�quina;M�quina;N�o
+;29-TN-17;SCANIA;Revalor;Pesado;Pesado;Sim
+;30-21-RS;R. CLIO (Vendido);Revalor;Ligeiro;Comercial;N�o
+;30-NL-88;Fiat Punto;Particular;Ligeiro;Uso Particular;N�o
+;30-UG-08;R. CLIO;Ambipombal;Ligeiro;Comercial;Sim
+;30-UP-21;Opel CORSA (Aluguer);Outros;Ligeiro;Uso Particular;N�o
+;31-23-NF;MERCEDES (Vendido);Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;31-HE-72;MERCEDES;Revalor;Pesado;Pesado;Sim
+;32-NU-09;Opel CORSA (Vendido);Revalor;Ligeiro;Comercial;N�o
+;32-NU-43;Opel CORSA;Btermec;Ligeiro;Comercial;Sim
+;33-GL-23;MERCEDES;Ambipombal;Pesado;Pesado;Sim
+;35-LH-87;MAN;Plurires�duos;Pesado;Pesado;Sim
+;35-VF-95;PORSCHE (Sr. Mota);Ambipombal;Ligeiro;Uso Particular;Sim
+;36-56-LH;PESADO;For�as Robustas;Pesado;Pesado;Sim
+;37-XL-99;PORSCHE (Sr. Mota) - VENDIDO;Ambipombal;Ligeiro;Uso Particular;N�o
+;38-DH-74;MERCEDES Sprinter;Revalor;Ligeiro;Carrinhas Mercadorias;N�o
+;38-PE-19;VOLVO;Revalor;Pesado;Pesado;Sim
+;39-EZ-48;TOYOTA DYNA;Ambipombal;Ligeiro;Carrinhas Mercadorias;Sim
+;39-NZ-68;MERCEDES;Ambipombal;Ligeiro;Uso Particular;N�o
+;40-LG-33;VW GOLF (Nelson);Particular;Ligeiro;Uso Particular;Sim
+;40-SJ-97;R. KANGOO (Riquito);Particular;Ligeiro;Carrinhas Mercadorias;N�o
+;40-ST-49;MERCEDES;Particular;Ligeiro;Uso Particular;N�o
+;41-61-MG;MERCEDES;Revalor;Pesado;Pesado;Sim
+4888RU;41-88-HU;TOYOTA HILUX;For�as Robustas;Ligeiro;Carrinhas Mercadorias;Sim
+;42-GI-27;MAN (Revalor);Revalor;Pesado;Pesado;Sim
+;42-SP-78;VOLVO (Revalor);Revalor;Pesado;Pesado;Sim
+;42-XN-87;MAN;Plurires�duos;Pesado;Pesado;Sim
+;43-PJ-40;Opel CORSA;Revalor;Ligeiro;Comercial;Sim
+;43-RH-21;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;43-RH-47;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;44-TL-17;MAN;Plurires�duos;Pesado;Pesado;Sim
+;45-95-ZE;VW Candy (Rui J�lio);Particular;Ligeiro;Uso Particular;N�o
+;45-CA-73;MAN;Revalor;Pesado;Pesado;N�o
+;45-VG-44;R. CLIO (5 lugares);Revalor;Ligeiro;Comercial;Sim
+;46-37-IJ;TOYOTA CRUISER;Pombaljardim;Ligeiro;Uso Particular;N�o
+;46-VJ-79;MAN;Plurires�duos;Pesado;Pesado;Sim
+;47-XF-18;Carro seguro;Btermec;Ligeiro;;N�o
+;48-NS-13;MERCEDES (Sr. Mota);Particular;Ligeiro;Uso Particular;Sim
+;48-NS-20;MERCEDES;Pombaljardim;Ligeiro;Uso Particular;N�o
+;49-01-PB;SCANIA (Transp. Cadete);Outros;Pesado;Pesado;N�o
+;49-71-QO;MAN (Vendido);Ambipombal;Pesado;Pesado;N�o
+;49-NZ-07;DAF;Ambipombal;Pesado;Pesado;Sim
+;50-68-RG;SCANIA;Ambipombal;Pesado;Pesado;Sim
+;50-RS-24;MERCEDES (Eng. Gon�alo);Ambipombal;Ligeiro;Uso Particular;Sim
+;52-21-XP;Opel CORSA (Rui J�lio);Particular;Ligeiro;Uso Particular;Sim 
+;52-JL-29;VW SCIROCCO (Sr. Mota);Particular;Ligeiro;Uso Particular;Sim
+;52-QD-33;TOYOTA AURIS (5 lugares);Revalor;Ligeiro;Comercial;Sim
+;52-QT-09;BMW (Vendido);Revalor;Ligeiro;Uso Particular;N�o
+;52-RU-79;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;52-VJ-20;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;53-OR-29;DAF;Ambipombal;Pesado;Pesado;Sim
+;54-53-MM;R. CLIO;Publiline;Ligeiro;Comercial;Sim
+;54-61-UM;TOYOTA DYNA;Ambipombal;Ligeiro;Carrinhas Mercadorias;Sim
+;54-CJ-47;R. KANGOO (SHADE  Norte);Shade;Ligeiro;Carrinhas Mercadorias;Sim
+;55-06-OI;Mercedes-benz;Revalor;Ligeiro;Comercial;Sim
+;55-40-JN;MERCEDES;Ambipombal;Pesado;Pesado;Sim
+55LU58;55-LU-58;R. Master (SUCH);Outros;Outros;Outros;N�o
+;57-IQ-78;FORD FOCUS (Rui Santos);Amanhece & Acontece;Ligeiro;Uso Particular;Sim
+;57-NR-15;SCANIA;Revalor;Pesado;Pesado;Sim
+;57-QM-70;AUDI A4 (Vitor Rosa);Particular;Ligeiro;Uso Particular;Sim
+;58-71-NB;SKODA (Vendido);Silimpa;Ligeiro;Comercial;N�o
+;58-OR-26;R. CLIO (SHADE - Filipe Neves);Shade;Ligeiro;Comercial;Sim
+58OR27;58-OR-27;R. CLIO;Pombaljardim;Ligeiro;Comercial;Sim
+;59-JJ-12;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;60-19-TC;VOLVO;Particular;Ligeiro;Uso Particular;N�o
+;60-XQ-39;R. Megane (5 lugares);Revalor;Ligeiro;Uso Particular;Sim
+;61-HV-94;BMW (Moca);Particular;Ligeiro;Uso Particular;Sim
+;62-OI-28;MAN;Ambipombal;Pesado;Pesado;Sim
+;62-ZO-78;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;63-24-UH;MERCEDES;Ambipombal;Pesado;Pesado;Sim
+;63-SC-55;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;63-ZO-17;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;63-ZO-98;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;64-QR-91;PEUGEOT 5008;Particular;Ligeiro;Uso Particular;N�o
+;64-ZO-42;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;66-GN-48;MAN;Ambipombal;Pesado;Pesado;Sim
+;66-OQ-50;MAN;Ambipombal;Pesado;Pesado;Sim
+;66-SU-92;Dacia Sandero (Eng. Filipa);Ambipombal;Ligeiro;Uso Particular;Sim
+;66-ZO-23;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;68-63-IV;IVECO;Ambipombal;Pesado;Pesado;Sim
+;68-95-RQ;IVECO;Ambipombal;Ligeiro;Carrinhas Mercadorias;Sim
+;68-QI-39;Nissan Qashqai (S�nia);Particular;Ligeiro;Uso Particular;Sim
+68-UR-45;68-UR-45;R. KANGOO (SHADE - Alcob.);Ambipombal;Ligeiro;Comercial;Sim
+;68-XP-04;Viatura Aluguer (Mariana);Outros;Ligeiro;Uso Particular;N�o
+;69-NP-91;BMW (Andreia C.);Particular;Ligeiro;Uso Particular;N�o
+;69-PD-89;VOLVO;Revalor;Pesado;Pesado;Sim
+;69-UI+G158-08;Viatura Aluguer;Outros;Ligeiro;Uso Particular;N�o
+;70-OC-57;DAF;Ambipombal;Pesado;Pesado;Sim
+;71-NE-79;Filipe (Shade A.) / Particular ;Particular;Ligeiro;Uso Particular;N�o
+;72-DA-91;MERCEDES;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;72-NJ-34;Citroen Berlingo;Revalor;Ligeiro;Comercial;Sim
+;72-TC-28;R. CLIO (M�rcia Silva);Ambipombal;Ligeiro;Comercial;Sim
+;72-TJ-67;PORSCHE;Particular;Ligeiro;Uso Particular;N�o
+;73-UJ-49;MERCEDES;Ambipombal;Pesado;Pesado;Sim
+;74-SX-94;Mclaren (Sr. Mota);Particular;Ligeiro;Uso Particular;Sim
+;76-NJ-36;PEUGEOT PARTNER;Plurires�duos;Ligeiro;Comercial;Sim
+;77-BJ-99;R. KANGOO (CIVTRHI);Ambipombal;Ligeiro;Carrinhas Mercadorias;Sim
+;77-CE-36;MAN;Revalor;Pesado;Pesado;Sim
+;78-AX-27;OPEL ASTRA;Particular;Ligeiro;Uso Particular;N�o
+;79-39-XV;MAN;Ambipombal;Pesado;Pesado;Sim
+;79-XZ-76;BMW (Jo�o Mota);Ambipombal;Ligeiro;Uso Particular;Sim
+;80-22-NX;Toyota Corolla 1997;For�as Robustas;Ligeiro;Comercial;Sim
+;80-39-ZE;Trator MAN;Revalor;Pesado;Pesado;Sim
+;80-AS-30;MAN;Ambipombal;Pesado;Pesado;Sim
+;80-LR-52;MAN;Ambipombal;Pesado;Pesado;Sim
+;81-PS-65;Dacia Sandero Azul (M�lanie Sim�es);Ribtejo;Ligeiro;Uso Particular;Sim
+;81-VE-76;Carro Particular;Particular;Ligeiro;Uso Particular;N�o
+;82-QD-15;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;82-QD-21;IVECO (Vendido);Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;N�o
+;84-38-TZ;MERCEDES (Vendido);Aplikargumento;Ligeiro;Uso Particular;N�o
+;87-NU-26;Trator SAME;Pombaljardim;M�quina;M�quina;Sim
+;89-IH-63;Toyota (Susana D.);Particular;Ligeiro;Uso Particular;Sim
+89TZ48;89-TZ-48;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;91-IA-02;R. CLIO (Bruno R�dio);Particular;Ligeiro;Comercial;N�o
+;91-VC-62;R. Captur (Marta);Particular;Ligeiro;Uso Particular;Sim
+;91-ZG-07;PORSCHE (Sofia) - VENDIDO;Revalor;Ligeiro;Uso Particular;Sim
+;92-26-US;MERCEDES;Ambipombal;Pesado;Pesado;Sim
+;93-07-ZL;MERCEDES (Vendido);Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;N�o
+;93-31-FM;IVECO;Ambipombal;Pesado;Pesado;Sim
+93BU68;93-BU-68;Sara Joaquim (RFM);Particular;Ligeiro;Uso Particular;N�o
+;93-GB-48;MAN;Ambipombal;Pesado;Pesado;Sim
+;94-30-ZR;MAN (vendido);Revalor;Pesado;Pesado;N�o
+;95-SB-99;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;95-ZA-92;Trator NEW HOLLAND (Quinta);;M�quina;M�quina;SIM
+;96-68-JT;MERCEDES;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;N�o
+;96-GJ-28;Carro dos Bombeiros;Ribtejo;Pesado;Pesado;SIM
+;96-SB-07;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;96-TF-70;R. KAPTUR (Bruno R�dio);Particular;Ligeiro;Uso Particular;N�o
+;98-ML-68;R. EXPRESS;Ambipombal;Ligeiro;Carrinhas Mercadorias;Sim
+;98-MR-04;R. LAGUNA (Eng. Vitor);Particular;Ligeiro;Uso Particular;Sim
+;98-RU-48;R. Megane (5 lugares);Ambipombal;Ligeiro;Comercial;Sim
+;99-NN-71;PESADO;Revalor;Pesado;Pesado;Sim
+;99-QG-28;PORSCHE (vendido);Particular;Ligeiro;Uso Particular;N�o
+AB47DR;AB47DR;Maserati (Sr. Mota);Particular;Ligeiro;Uso Particular;N�o
+;AC-02-AU;Aluguer;Outros;Ligeiro;Uso Particular;N�o
+;AF-92-ZP;DAF;Ambipombal;Pesado;Pesado;Sim
+AG84AG;AG-84-AG;AUDI SQ5 (Sr. Mota);Particular;Ligeiro;Uso Particular;Sim
+;AG-84-ZJ;Opel Crossland X (Aluguer);Outros;Ligeiro;Uso Particular;N�o
+;AH-88-IM;BMW (Jo�o Mota);Ambipombal;Ligeiro;Uso Particular;Sim
+;AI-86-GP;MAN;Ambipombal;Pesado;Pesado;Sim
+;AL-48-HR;AUDI A4 (Z� Carlos);Particular;Ligeiro;Uso Particular;Sim
+;AN-83-VF;(Transp. Cadete);Outros;Pesado;Pesado;N�o
+;ANULADO;Anulado;Outros;Outros;Outros;N�o
+;AQ-80-FJ;R. KANGOO (P. Jord�o);Ambipombal;Ligeiro;Comercial;Sim
+;AR-31-DP;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;AR-45-DP;IVECO;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;AR-66-GN;MERCEDES;Ambipombal;Pesado;Pesado;Sim
+AT89VF;AT-89-VF;AUDI A4 (Gil);Particular;Ligeiro;Uso Particular;Sim
+;AV-18-ST;AUDI A4 (Mariana Mota);Particular;Ligeiro;Uso Particular;Sim
+;BF-02-AN;MERCEDES (Sr. Mota);Ambipombal;Ligeiro;Uso Particular;Sim
+;BF-32-PV;RENAULT ;Ambipombal;Ligeiro;Carrinhas Mercadorias;sim
+;BF-64-EM;Iveco;Ambipombal;Ligeiro;Carrinhas Res�duos Hospitalares;Sim
+;BF-66-EL;MERCEDES (Dr. Adelino Mendes);Ambipombal;Ligeiro;Uso Particular;sim
+;BH-25-CG;Dacia Duster;Btermec;Ligeiro;Uso Particular;Sim
+;BH-27-IP;MERCEDES;Ambipombal;Ligeiro;Uso Particular;Sim
+BQUINTA;GASOLEO QUINTA DE SOURE;Gasoleo Quinta Soure;Outros;Outros;Outros;Sim
+;BL-35-XT;Porsche (Mariana);Ambipombal;Ligeiro;Uso Particular;Sim
+;BOBCAT 5150;Boc Cat;Ambipombal;M�quina;M�quina;N�o
+BOMBAPRESSAO;BOMBA 1000 BAR;Bomba 1000 BAR;Ambipombal;Outros;Outros;Sim
+BOMBAINCEN;BOMBA CENTRAL DE INC�NDIO DA PIR�LISE;Bomba Inc�ndio Pir.;Outros;Outros;Outros;N�o
+;CAIMA CITROEN;Citroen;Outros;Ligeiro;;N�o
+;CALDEIRA GASOLEO AQUEC. SRA ELENA;CALDEIRA GASOLEO AQUECIMENTO SRA ELENA;Outros;Outros;Outros;N�O
+;CARRINHA FORD;;Ribtejo;M�quina;M�quina;N�o
+;Carro Alugado;Aluguer (Vitor Rosa);Outros;Ligeiro;Uso Particular;N�o
+;Case;Trator Quinta;Particular;M�quina;M�quina;Sim
+CAT320;CAT 320;;Ambipombal;M�quina;M�quina;Sim
+CAT938G;CAT 938G;P� Carregadora;Ambipombal;M�quina;M�quina;Sim
+;CAT 963B;;Ribtejo;M�quina;M�quina;Sim
+;CAT D6 T ;Bulldozer;Ribtejo;M�quina;M�quina;Sim
+;COMPRESSOR;;Ribtejo;M�quina;M�quina;Sim
+;CortaRelva;Corta relva;Ambipombal;Outros;Outros;Sim
+DEPM�VELRIBTEJO;DEP M�VEL RIBTEJO;DEP M�VEL RIBTEJO;Ribtejo;Outros;Outros;N�o
+;DEP. MOVEL RIBTEJO ;Dep. Movel Ribtejo ;Ribtejo;Outros;Outros;N�o
+;DEP�SITO M�VEL;;Ribtejo;M�quina;M�quina;N�o
+DOOSAN;DOOSAN;Doosan;Ribtejo;M�quina;M�quina;SIM
+;DUMPER VOLVO A25C;Dumper (Volvo A25C);Ribtejo;M�quina;M�quina;Sim
+;Dumper Volvo A30D;Dumper (Volvo A30D);Ribtejo;M�quina;M�quina;SIM
+ELEVATORIA;ELEVAT�RIA;;CIVTRHI;M�quina;M�quina;Sim
+EMP01;EMP 01;TOYOTA 30 (NOVO);Ambipombal;M�quina;Empilhador;Sim
+EMP02;EMP 02;MANITOU Vermelha;Ambipombal;M�quina;Empilhador;Sim
+Emp03;EMP 03;TOYOTA 30;Ambipombal;M�quina;Empilhador;Sim
+Emp04;EMP 04;KOMATSU 25 ;Ambipombal;M�quina;Empilhador;Sim
+EMP05;EMP 05;NISSAN (revalor);Revalor;M�quina;Empilhador;Sim
+EMP07;EMP 07;Mitsubishi 7 (Forno);CIVTRHI;M�quina;Empilhador;Sim
+EMP08;EMP 08;Mitsubishi 8 (Autoclave);CIVTRHI;M�quina;Empilhador;Sim
+Emp09;EMP 09;;Ambipombal;M�quina;Empilhador;Sim
+Emp10;EMP 10;KOMATSU 30;Ambipombal;M�quina;Empilhador;Sim
+EMP11;EMP 11;Nissan 15;CIVTRHI;M�quina;Empilhador;Sim
+EMP12;EMP 12;NISSAN - Bra�os;Ambipombal;M�quina;Empilhador;Sim
+EMP13;EMP 13;TOYOTA 30 (de virar);Ambipombal;M�quina;Empilhador;Sim
+EMP14;EMP 14;Toyota 25 Armaz�m;Ambipombal;M�quina;Empilhador;Sim
+EMP15;EMP 15;Toyota 30 (Ambiwaste);Ambipombal;M�quina;Empilhador;Sim
+Emp16;EMP 16;Komatsu 20;Ambipombal;M�quina;Empilhador;Sim
+Emp17;EMP 17;NISSAN A;Ambipombal;M�quina;Empilhador;Sim
+Emp18;EMP 18;TOYOTA 25;Ambipombal;M�quina;Empilhador;Sim
+EMP19;EMP 19;TOYOTA 252;Ambipombal;M�quina;Empilhador;Sim
+Emp20;EMP 20;TOYOTA 30;Ambipombal;M�quina;Empilhador;Sim
+EMP21;EMP 21;Mitsubishi- Electrico;Ambipombal;M�quina;Empilhador;Sim
+toyota25;EMP 25;Toyota 25 ;Ambipombal;M�quina;Empilhador;Sim
+EMP30;EMP 30;Toner 030;Ambipombal;M�quina;Empilhador;Sim
+EMP31;EMP 31;Toyota CIVTRHI;CIVTRHI;M�quina;Empilhador;Sim
+EMP BTER;EMP BTERMEC;Btermec ;Btermec;M�quina;Empilhador;Sim
+EMPLISBOA;EMP Lisboa;Empilhador Lisboa;Ambipombal;M�quina;Empilhador;Sim
+EMPTINTO;EMP TINTO;Emp Armazem Tinto;Ambipombal;M�quina;Empilhador;Sim
+JCB532;EMPILHADOR JCB;;Ribtejo;M�quina;Empilhador;Sim
+FB;FERRAR BOMBA;FERRAR BOMBA;Ambipombal;M�quina;M�quina;SIM
+FILTROS;FILTROS;Oficina;Ambipombal;Outros;Outros;Sim
+FILTROSBOMBA;Filtros Bomba;Filtros Bomba Combust�vel;Ambipombal;Outros;Outros;N�o
+GENIE4x2;GENIE 4x2;Elevat�ria GENIE 4x2 (+Antiga);Ambipombal;M�quina;M�quina;SIM
+GENIE4x4;GENIE 4x4;Elevat�ria GENIE 4x4;Ambipombal;M�quina;M�quina;SIM
+GERADOR;GERADOR;Quinta de Soure;Outros;Outros;Outros;Sim
+;Gerador (Btermec);M�quina;Btermec;M�quina;M�quina;Sim
+;GERADOR BRAMAC;GERADOR;Ribtejo;Outros;Outros;Sim
+;GERADOR CIVTRHI;;CIVTRHI;Outros;Outros;Sim
+;GIRAT�RIA CAT 320;;Ribtejo;M�quina;M�quina;Sim
+CAT323;GIRAT�RIA CAT 323;Girat�ria Cat 323;Ribtejo;M�quina;M�quina;Sim
+;Girat�ria Cat 323 DL;Girat�ria Cat 323 DL;Ribtejo;M�quina;M�quina;SIM
+CAT325;Girat�ria Cat 325;M�quina For�as Robustas;For�as Robustas;M�quina;M�quina;Sim
+JCBJS200;GIRAT�RIA JCB JS200;;Ambipombal;M�quina;M�quina;Sim
+KUBOTA;Girat�ria Kubota;Girat�ria Kubota;Ambipombal;M�quina;M�quina;Sim
+GIRATLIEB;GIRAT�RIA LIEBER;GIRAT�RIA LIEBER;Ambipombal;M�quina;M�quina;Sim
+GIRATNEUSO;GIRAT�RIA NEUSON;;Ambipombal;M�quina;M�quina;Sim
+;GIRAT�RIA PEL JOB;;Ambipombal;M�quina;M�quina;Sim
+;GIRAT�RIA VOLVO 210CL;;Ribtejo;M�quina;M�quina;Sim
+HARM1966;HARM1966;MERCEDES S400 (Sr. Mota);Ambipombal;Ligeiro;Uso Particular;Sim
+;Jardins;M�quina Jardins;Pombaljardim;M�quina;M�quina;Sim
+JCB1CX;JCB 1 CX;;Ambipombal;M�quina;M�quina;Sim
+JCB240;JCB 240;JCB 240 Girat�ria (Pedreira);For�as Robustas;M�quina;M�quina;Sim
+JCB537;JCB 537;;Ambipombal;M�quina;M�quina;Sim
+JOHNDEERE;John Deere;Trator Quinta;Particular;M�quina;M�quina;Sim
+;Licinia Amanhece & Acontece;Carro Particular Licinia;Amanhece & Acontece;Ligeiro;Uso Particular;N�o
+;LIND;;Ribtejo;M�quina;M�quina;N�o
+LINDEH50;LINDE H50;Emp 09;Ambipombal;M�quina;M�quina;Sim
+;MAQ.LAVAGEM RIB;RIBTEJO;Ribtejo;Outros;Outros;Sim
+MAQALUGA;M�QUINA ALUGADA;M�quina (Aluguer);Outros;M�quina;M�quina;N�o
+MAQUINALAV;M�QUINA DA LAVAGEM;;Ambipombal;Outros;Outros;Sim
+;M�quina Obras;Obras Autoclave;Outros;M�quina;M�quina;Sim
+CA;M�quinas Pedreira;M�quinas Pedreira;For�as Robustas;M�quina;M�quina;Sim
+;NE11627Z;BMW;Particular;Ligeiro;Uso Particular;N�o
+;OFICINA CIVTRHI;;CIVTRHI;Outros;Outros;Sim
+;Outros;Outros Ve�culos;Outros;Outros;Outros;N�o
+;P� CARREGADORA 966;Caterpillar;Ribtejo;M�quina;M�quina;N�o
+PIROLISE;PIROLISE ;PIROLISE;Ambipombal;Outros;Outros;N�o
+PISOMOVEL;Piso M�vel;Piso M�vel;Outros;Outros;Outros;N�o
+;PLATAFORMA;;CIVTRHI;M�quina;M�quina;Sim
+;PLATAFORMA (Aluguer);Plataforma (Alugada);Outros;M�quina;M�quina;N�o
+;RC-21-81;Nissan 4x4 (Ribtejo);Ambipombal;Ligeiro;Carrinhas Mercadorias;Sim
+RL0280;RL-02-80;Trator Agricola;Pombaljardim;M�quina;M�quina;Sim
+RO8522;RO-85-22;Toyota DYNA;Amanhece & Acontece;Ligeiro;Carrinhas Mercadorias;Sim
+;TANA;;Ribtejo;M�quina;M�quina;Sim
+TANQUEMOV;TANQUE DE GASOLEO M�VEL;Tanque Gas�leo M�vel;Ambipombal;Outros;Outros;N�o
+TANQMOVEL;Tanque M�vel;Tanque M�vel;Ambipombal;M�quina;M�quina;Sim
+TELALUGADA;TELESC�PIA ALUGADA;TELESC�PIA Aluguer;Outros;M�quina;M�quina;N�o
+TELESCOPIC;TELESC�PICA;Telesc�pica JCB;Ambipombal;M�quina;M�quina;Sim
+;Tractor Mits;Trator Mitsubishi;Outros;M�quina;M�quina;Sim
+;UNIMOG;Unimog Renault (bombeiros);Ribtejo;M�quina;M�quina;N�o
+;VA-51-62;VW Golf (Rui Salvador, ordens Z� Carlos);Particular;Ligeiro;Uso Particular;N�o
+VARISCO;VARISCO;BOMBA DE PRESS�O 400;Outros;Outros;Outros;Sim
+Aluguer;Viatura aluguer;Viatura Aluguer;Outros;Ligeiro;Uso Particular;N�o
+Viveiros;VIVEIROS;Viveiros;Outros;Outros;Outros;Sim
+VOLVO210;VOLVO 210CL;Girat�ria;Ambipombal;M�quina;M�quina;Sim
+VOLVOA25;VOLVO A 25C;Dumper;Ambipombal;M�quina;M�quina;Sim
+VOLVOFH380;VOLVO FH380;Estaleiro;Ambipombal;M�quina;M�quina;Sim
+VOLVOL70;VOLVO L70;Carregadora;Ambipombal;M�quina;M�quina;Sim
+VOLVOL120;VOLVOL120;P� Carregadora;Ambipombal;M�quina;M�quina;SIM
+;;M�quina Ambipombal;Ambipombal;M�quina;M�quina;Sim
+;;M�quina;Ribtejo;M�quina;M�quina;Sim
+0303VN;03-03-VN;BMW(J.Tom�sio)-Ordem do Gil ;Particular;Ligeiro;Uso Particular;Sim
+;BJ-43-CQ;PESADO;Ambipombal;Pesado;Pesado;Sim
+6039SV;60-39-SV;Mazda ;For�as Robustas;Ligeiro;Carrinhas Mercadorias;Sim
+;64-17-ZG;OPEL (Susana Domingues);Particular;Ligeiro;Uso Particular;Sim
+BP84RX;BP-84-RX;DAF CF Trator Tra��o Verm. - CEDIDA Bombeiros;Outros;Pesado;Pesado;N�o
+61FH42;61-FH-42;(Transp. Cadete);Outros;Pesado;Pesado;N�o
