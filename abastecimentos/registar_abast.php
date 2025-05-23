@@ -31,7 +31,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $msg = "Por favor preencha todos os campos obrigatórios.";
   } else {
     $sql = "INSERT INTO abastecimentos 
-      (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, tipo_combustivel, observacoes, valor_total) 
+      (id_veiculo, 
+      id_utilizador, 
+      data_abastecimento, 
+      km_registados, 
+      id_posto,
+      litros, 
+      tipo_combustivel, 
+      observacoes, 
+      valor_total) 
       VALUES 
       ('$id_veiculo', '$id_utilizador', '$data_abastecimento', '$km_registados', '$id_posto', '$litros', '$tipo_combustivel', '$observacoes', '$valor_total')";
 

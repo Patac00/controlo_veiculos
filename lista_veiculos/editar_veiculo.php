@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (
         isset($_POST['Matricula'], $_POST['Descricao'], $_POST['empresa_atual_id'], $_POST['Tipo'], 
               $_POST['Grupo'], $_POST['km_atual'], $_POST['estado'], $_POST['matricula_antiga'])
-    ) {
+    ){
         $matricula_nova = trim(mysqli_real_escape_string($con, $_POST['Matricula']));
         $descricao = mysqli_real_escape_string($con, $_POST['Descricao']);
         $empresa_atual_id = (int)$_POST['empresa_atual_id'];
@@ -64,7 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_update = mysqli_prepare($con, "UPDATE veiculos SET 
                 Matricula = ?, Descricao = ?, Tipo = ?, Grupo = ?, km_atual = ?, estado = ?, empresa_atual_id = ?
                 WHERE Matricula = ?");
-            mysqli_stmt_bind_param($stmt_update, "ssssiiss", $matricula_nova, $descricao, $tipo, $grupo, $km_atual, $estado, $empresa_atual_id, $matricula_antiga_post);
+            mysqli_stmt_bind_param($stmt_update, "ssssisis", 
+                $matricula_nova, $descricao, $tipo, $grupo, $km_atual, $estado, $empresa_atual_id, $matricula_antiga_post);
 
             if (mysqli_stmt_execute($stmt_update)) {
                 $msg = "Veículo atualizado com sucesso.";
@@ -78,12 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msg = "Erro na atualização: " . mysqli_error($con);
             }
         }
-    } else {
-        $msg = "Erro: Preenche todos os campos obrigatórios.";
     }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="pt">

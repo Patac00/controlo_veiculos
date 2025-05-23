@@ -6,18 +6,30 @@ if (!isset($_SESSION['id_utilizador'])) {
 }
 include("../php/config.php");
 
-
+// Contar veículos ativos
 $sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo'";
 $result = mysqli_query($con, $sql);
 $row = mysqli_fetch_assoc($result);
-$total_ativos = $row['total_ativos'];
+$total_ativos = $row['total_ativos'] ?? 0;
 
-$sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'manutencao'";
+// Contar veículos em manutenção
+$sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'Manutenção'";
 $result = mysqli_query($con, $sql);
 $row = mysqli_fetch_assoc($result);
-$veiculos_manutencao = $row['total_manutencao'];
+$veiculos_manutencao = $row['total_manutencao'] ?? 0;
 
+// Somar litros de combustível
+$sql = "SELECT SUM(litros) AS litros FROM stocks_combustivel";
+$result = mysqli_query($con, $sql);
+$row = mysqli_fetch_assoc($result);
+$nivel_combustivel = $row['litros'] ?? 0;
+
+$capacidade_total = 10000;
+$percentagem = ($nivel_combustivel / $capacidade_total) * 100;
 ?>
+
+
+
 
 <!DOCTYPE html>
 <html
@@ -71,6 +83,24 @@ $veiculos_manutencao = $row['total_manutencao'];
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
     <script src="../assets/js/config.js"></script>
+
+        <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; width: 300px; }
+        .progress-bar {
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            height: 20px;
+            width: 100%;
+        }
+        .progress {
+            background-color: #4caf50;
+            height: 100%;
+            width: 0;
+            transition: width 0.5s ease;
+        }
+    </style>
   </head>
 
   <body>
@@ -352,20 +382,28 @@ $veiculos_manutencao = $row['total_manutencao'];
                   </div>
                 </div>
               </div>
-                    <span>Nº Veículos em manutenção</span>
-      <h3 class="card-title text-nowrap mb-1"><?php echo $veiculos_manutencao; ?></h3>
-      <small class="text-warning fw-semibold"><i class="bx bx-wrench"></i> em manutenção</small>
-    
+                <span>Nº Veículos em manutenção</span>
+                <h3 class="card-title text-nowrap mb-1"><?php echo $veiculos_manutencao; ?></h3>
+                <small class="text-warning fw-semibold"><i class="bx bx-wrench"></i> em manutenção</small>
+              </div>
             </div>
           </div>
         </div>
 
+        <!-- Card Combustível -->
+        <div class="col-md-4 mb-4">
+          <div class="card">
+  
+        <strong>Nível de Combustível:</strong> <?php echo number_format($nivel_combustivel, 2); ?> litros<br />
+        <div class="progress-bar">
+            <div class="progress" style="width: <?php echo $percentagem; ?>%;"></div>
+        </div>
+        <small><?php echo number_format($percentagem, 2); ?>% da capacidade total</small>
+   
+          </div>
+        </div>
+        
       </div>
-    </div>
-
-
-
-            
 
             <!-- Footer -->
             <footer class="content-footer footer bg-footer-theme">
