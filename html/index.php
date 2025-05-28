@@ -19,13 +19,21 @@ $row = mysqli_fetch_assoc($result);
 $veiculos_manutencao = $row['total_manutencao'] ?? 0;
 
 // Somar litros de combustível
-$sql = "SELECT SUM(litros) AS litros FROM stocks_combustivel";
+$sql = "SELECT SUM(litros) AS litros FROM stock_combustivel";
 $result = mysqli_query($con, $sql);
 $row = mysqli_fetch_assoc($result);
 $nivel_combustivel = $row['litros'] ?? 0;
 
 $capacidade_total = 10000;
 $percentagem = ($nivel_combustivel / $capacidade_total) * 100;
+
+if ($percentagem > 50) {
+    $cor = "#00BFFF";  // Azul
+} elseif ($percentagem > 35) {
+    $cor = "#FFFF00";  // amarelo
+} else {
+    $cor = "#FF0000";  // vermelho
+}
 ?>
 
 
@@ -85,7 +93,7 @@ $percentagem = ($nivel_combustivel / $capacidade_total) * 100;
     <script src="../assets/js/config.js"></script>
 
         <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
+        body { font-family: Arial, sans-serif; margin: 20px; }  
         .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; width: 300px; }
         .progress-bar {
             background-color: #ddd;
@@ -390,32 +398,25 @@ $percentagem = ($nivel_combustivel / $capacidade_total) * 100;
           </div>
         </div>
 
-        <!-- Card Combustível -->
-        <div class="col-md-4 mb-4">
-          <div class="card">
-  
-        <strong>Nível de Combustível:</strong> <?php echo number_format($nivel_combustivel, 2); ?> litros<br />
-        <div class="progress-bar">
-            <div class="progress" style="width: <?php echo $percentagem; ?>%;"></div>
+          <!-- Card Combustível -->
+          <div class="col-md-4 mb-4">
+            <div class="card">
+              <div class="card-body">
+                <div class="card-title d-flex align-items-start justify-content-between">
+                        <h2>Redinha</h2>
+                    <button >
+                      <a class="dropdown-item" href="../abastecimentos/fornecer_comb.php">+ detalhes</a>
+                    </button>
+                </div>
+                <strong>Nível de Combustível:</strong> <?php echo number_format($nivel_combustivel, 2); ?> litros<br />
+                <div class="progress-bar" style="background-color: #eee;">
+                  <div class="progress" style="width: <?php echo $percentagem; ?>%; background-color: <?php echo $cor; ?>;"></div>
+                </div>
+                <small><?php echo number_format($percentagem, 2); ?>% da capacidade total</small>
+              </div>
+            </div>
+          </div>          
         </div>
-        <small><?php echo number_format($percentagem, 2); ?>% da capacidade total</small>
-   
-          </div>
-        </div>
-        
-      </div>
-
-            <!-- Footer -->
-            <footer class="content-footer footer bg-footer-theme">
-              <h2>FOOTER</h2>
-            </footer>
-            <!-- / Footer -->
-
-            <div class="content-backdrop fade"></div>
-          </div>
-          <!-- Content wrapper -->
-        </div>
-        <!-- / Layout page -->
       </div>
 
       <!-- Overlay -->

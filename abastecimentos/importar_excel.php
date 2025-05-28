@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dados'])) {
         $dataFormatada = $dataObj ? $dataObj->format('Y-m-d') : null;
 
         // Verifica se já existe esse registo (pelo que tu quiseres: data, hora, numero_reg)
-        $sqlCheck = "SELECT 1 FROM tabela_combustivel WHERE data = ? AND hora = ? AND numero_reg = ?";
+        $sqlCheck = "SELECT 1 FROM bomba_redinha WHERE data = ? AND hora = ? AND numero_reg = ?";
         $stmtCheck = $con->prepare($sqlCheck);
         $linha['numero_reg'] = trim($linha['numero_reg']);
         $stmtCheck->bind_param("sss", $dataFormatada, $linha['hora'], $linha['numero_reg']);
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dados'])) {
 
         if ($stmtCheck->num_rows === 0) {
             // Só insere se não existir
-            $sql = "INSERT INTO tabela_combustivel (data, hora, unidade, numero_reg, odometro, motorista, quantidade)
+            $sql = "INSERT INTO bomba_redinha (data, hora, unidade, numero_reg, odometro, motorista, quantidade)
                     VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmt = $con->prepare($sql);
             $stmt->bind_param(
