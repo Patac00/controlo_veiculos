@@ -8,64 +8,84 @@ include("../php/config.php");
 
 $msg = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  $id_veiculo = mysqli_real_escape_string($con, $_POST['id_veiculo']);
-  $id_utilizador = mysqli_real_escape_string($con, $_POST['id_utilizador']);
-  $data_abastecimento = date('Y-m-d H:i:s', strtotime($_POST['data_abastecimento']));
-  $km_registados = intval($_POST['km_registados']);
-  $km_anteriores = intval($_POST['km_anteriores']); // km do hidden enviado pelo form
-  $id_posto = mysqli_real_escape_string($con, $_POST['id_posto']);
-  $litros = floatval($_POST['litros']);
-  $preco_litro = floatval($_POST['preco_litro']);
-  $valor_total = $litros * $preco_litro;
-  $tipo_combustivel = isset($_POST['tipo_combustivel']) ? mysqli_real_escape_string($con, $_POST['tipo_combustivel']) : '';
-  $observacoes = isset($_POST['observacoes']) ? mysqli_real_escape_string($con, $_POST['observacoes']) : '';
-
-  // Validação km: o km_registados não pode ser menor que km_anteriores
-  if ($km_registados < $km_anteriores) {
-    $msg = "Erro: Os KM registados não podem ser inferiores ao último valor registado ($km_anteriores KM).";
-  } else if (
-    empty($id_veiculo) || empty($id_utilizador) || empty($data_abastecimento) ||
-    empty($km_registados) || empty($id_posto) || empty($litros) || empty($tipo_combustivel)
-  ) {
-    $msg = "Por favor preencha todos os campos obrigatórios.";
-  } else {
-    $sql = "INSERT INTO abastecimentos 
-      (id_veiculo, 
-      id_utilizador, 
-      data_abastecimento, 
-      km_registados, 
-      id_posto,
-      litros, 
-      tipo_combustivel, 
-      observacoes, 
-      valor_total) 
-      VALUES 
-      ('$id_veiculo', '$id_utilizador', '$data_abastecimento', '$km_registados', '$id_posto', '$litros', '$tipo_combustivel', '$observacoes', '$valor_total')";
-
-    if (mysqli_query($con, $sql)) {
-      $msg = "Abastecimento registado com sucesso!";
-    } else {
-      $msg = "Erro: " . mysqli_error($con);
+// Buscar último km para min do input (default 0)
+$kmAnterior = 0;
+if ($_SERVER["REQUEST_METHOD"] != "POST") {
+    // Se não for submit, tentar obter último km do primeiro veículo para setar min
+    $res = mysqli_query($con, "SELECT km_registados FROM abastecimentos ORDER BY data_abastecimento DESC LIMIT 1");
+    if ($res && mysqli_num_rows($res) > 0) {
+        $row = mysqli_fetch_assoc($res);
+        $kmAnterior = intval($row['km_registados']);
     }
-  }
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $id_veiculo = intval($_POST['id_veiculo']);
+    $id_utilizador = intval($_POST['id_utilizador']);
+    $data_abastecimento = date('Y-m-d H:i:s', strtotime($_POST['data_abastecimento']));
+    $km_registados = intval($_POST['km_registados']);
+    $km_anteriores = intval($_POST['km_anteriores']);
+    $id_posto = intval($_POST['id_posto']);
+    $litros = floatval($_POST['litros']);
+    $preco_litro = floatval($_POST['preco_litro']);
+    $valor_total = $litros * $preco_litro;
+    $id_tipo_combustivel = intval($_POST['id_tipo_combustivel']);
+    $observacoes = isset($_POST['observacoes']) ? trim($_POST['observacoes']) : '';
+
+    // Validação km
+    if ($km_registados < $km_anteriores) {
+        $msg = "Erro: Os KM registados não podem ser inferiores ao último valor registado ($km_anteriores KM).";
+    } else if (
+        empty($id_veiculo) || empty($id_utilizador) || empty($data_abastecimento) ||
+        empty($km_registados) || empty($id_posto) || empty($litros) || empty($id_tipo_combustivel)
+    ) {
+        $msg = "Por favor preencha todos os campos obrigatórios.";
+    } else {
+        // Prepared statement para inserir
+        $stmt = $con->prepare("INSERT IN  TO abastecimentos 
+            (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, id_tipo_combustivel, observacoes, valor_total) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if ($stmt === false) {
+            $msg = "Erro na preparação da query: " . $con->error;
+        } else {
+            $stmt->bind_param(
+                "iisiiddsd",
+                $id_veiculo,
+                $id_utilizador,
+                $data_abastecimento,
+                $km_registados,
+                $id_posto,
+                $litros,
+                $id_tipo_combustivel,
+                $observacoes,
+                $valor_total
+            );
+
+            if ($stmt->execute()) {
+                $msg = "Abastecimento registado com sucesso!";
+            } else {
+                $msg = "Erro ao executar a query: " . $stmt->error;
+            }
+            $stmt->close();
+        }
+    }
 }
 
 // AJAX interno para obter km e data/hora mais recente do veículo selecionado
 if (isset($_GET['acao']) && $_GET['acao'] === 'obter_km' && isset($_GET['id_veiculo'])) {
-  $id_veiculo = intval($_GET['id_veiculo']);
-  $sql = "SELECT km_registados, data_abastecimento FROM abastecimentos WHERE id_veiculo = $id_veiculo ORDER BY data_abastecimento DESC LIMIT 1";
-  $res = mysqli_query($con, $sql);
-  if ($res && mysqli_num_rows($res) > 0) {
-    $row = mysqli_fetch_assoc($res);
-    echo json_encode([
-      'km' => intval($row['km_registados']),
-      'data' => $row['data_abastecimento']
-    ]);
-  } else {
-    echo json_encode(['km' => 0, 'data' => 'Nenhum registo anterior']);
-  }
-  exit;
+    $id_veiculo = intval($_GET['id_veiculo']);
+    $sql = "SELECT km_registados, data_abastecimento FROM abastecimentos WHERE id_veiculo = $id_veiculo ORDER BY data_abastecimento DESC LIMIT 1";
+    $res = mysqli_query($con, $sql);
+    if ($res && mysqli_num_rows($res) > 0) {
+        $row = mysqli_fetch_assoc($res);
+        echo json_encode([
+            'km' => intval($row['km_registados']),
+            'data' => $row['data_abastecimento']
+        ]);
+    } else {
+        echo json_encode(['km' => 0, 'data' => 'Nenhum registo anterior']);
+    }
+    exit;
 }
 
 // Carregar dados para selects
@@ -86,7 +106,14 @@ $res = mysqli_query($con, "SELECT id_posto, nome FROM lista_postos ORDER BY nome
 while ($row = mysqli_fetch_assoc($res)) {
     $postos[] = $row;
 }
+
+$tipos_combustivel = [];
+$res = mysqli_query($con, "SELECT id, nome FROM tipo_combustivel ORDER BY nome");
+while ($row = mysqli_fetch_assoc($res)) {
+    $tipos_combustivel[] = $row;
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="pt">
@@ -185,7 +212,8 @@ while ($row = mysqli_fetch_assoc($res)) {
 
     <!-- Mostrar último KM e data -->
     <label>Último Registo:</label>
-    <input type="text" id="ultimo_km_data" readonly value="Nenhum registo anterior">
+    <input type="number" name="km_registados" id="km_registados" required min="<?= $kmAnterior ?>">
+
 
     <!-- Campo hidden para guardar km anteriores -->
     <input type="hidden" id="km_anteriores" name="km_anteriores" value="0">
@@ -212,13 +240,13 @@ while ($row = mysqli_fetch_assoc($res)) {
 
     <!-- Tipo de Combustível -->
     <label>Tipo de Combustível:</label>
-    <select name="tipo_combustivel" required>
-      <option value="">-- Selecionar --</option>
-      <option value="Gasóleo">Gasóleo</option>
-      <option value="Gasolina">Gasolina</option>
-      <option value="GPL">GPL</option>
-      <option value="Elétrico">Elétrico</option>
-    </select>
+    <select name="id_tipo_combustivel" required>
+  <option value="">Selecionar...</option>
+  <?php foreach ($tipos_combustivel as $t): ?>
+    <option value="<?= $t['id'] ?>"><?= $t['nome'] ?></option>
+  <?php endforeach; ?>
+</select>
+
 
     <!-- Litros, Preço e Valor Total -->
     <div style="display: flex; gap: 10px; margin-top: 15px;">
@@ -232,7 +260,8 @@ while ($row = mysqli_fetch_assoc($res)) {
       </div>
       <div style="flex: 1;">
         <label>Valor Total (€):</label>
-        <input type="number" step="0.01" name="valor_total" id="valor_total" readonly required>
+        <input type="number" step="0.01" id="valor_total" readonly>
+
       </div>
     </div>
 
@@ -243,7 +272,7 @@ while ($row = mysqli_fetch_assoc($res)) {
     <button type="submit">Guardar Abastecimento</button>
   </form>
 
-  <a class="back-btn" href="ver_lista_abastecimentos.php">← Ver Abastecimentos</a>
+  <a class="back-btn" href="verifica_registo.php">← Ver Abastecimentos</a>
   <a class="back-btn" href="../html/index.php">← Voltar ao Início</a>
 </div>
 

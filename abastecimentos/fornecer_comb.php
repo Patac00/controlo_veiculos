@@ -10,6 +10,19 @@ include("../php/config.php");
 $mensagem = '';
 $tipo_mensagem = '';
 
+// Buscar os tipos de combustível
+$tipos = [];
+$res = mysqli_query($con, "SELECT DISTINCT nome FROM tipo_combustivel");
+while ($row = mysqli_fetch_assoc($res)) {
+    $tipos[] = $row['nome'];
+}
+// Buscar a lista de postos
+$postos = [];
+$res = mysqli_query($con, "SELECT DISTINCT nome FROM lista_postos");
+while ($row = mysqli_fetch_assoc($res)) {
+    $postos[] = $row['nome'];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = $_POST['data'] ?? null;
     $tipo_combustivel = $_POST['tipo_combustivel'] ?? null;
@@ -20,21 +33,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($data && $tipo_combustivel && $litros && $preco_litro && $localizacao && $fatura) {
         if ($litros > 10000) {
-            $mensagem = "Erro: não podes inserir mais que 10000 litros.";
+            $mensagem = "Erro: não podes inserir mais que 10000 litros de uma vez.";
             $tipo_mensagem = "danger";
         } else {
-            $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, localizacao, preco_litro, fatura) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssddss", $data, $tipo_combustivel, $litros, $localizacao, $preco_litro, $fatura);
+            // Verificar total atual para o tipo e localizacao
+            $sql = "SELECT COALESCE(SUM(litros), 0) AS total FROM fornecimentos_bomba WHERE tipo_combustivel = ? AND localizacao = ?";
+            $stmt_check = $con->prepare($sql);
+            $stmt_check->bind_param("ss", $tipo_combustivel, $localizacao);
+            $stmt_check->execute();
+            $result = $stmt_check->get_result();
+            $row = $result->fetch_assoc();
+            $total_atual = $row['total'] ?? 0;
 
-            if ($stmt->execute()) {
-                $mensagem = "✅ Fornecimento registado com sucesso!";
-                $tipo_mensagem = "success";
-            } else {
-                $mensagem = "Erro ao registar fornecimento: " . $stmt->error;
+            $novo_total = $total_atual + $litros;
+
+            if ($novo_total > 10000) {
+                $mensagem = "Erro: Limite de 10.000 litros ultrapassado para este tipo de combustível e localização.";
                 $tipo_mensagem = "danger";
+            } else {
+                $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, localizacao, preco_litro, fatura) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssdssd", $data, $tipo_combustivel, $litros, $localizacao, $preco_litro, $fatura);
+
+                if ($stmt->execute()) {
+                    $mensagem = "✅ Fornecimento registado com sucesso!";
+                    $tipo_mensagem = "success";
+                } else {
+                    $mensagem = "Erro ao registar fornecimento: " . $stmt->error;
+                    $tipo_mensagem = "danger";
+                }
+
+                $stmt->close();
             }
 
-            $stmt->close();
+            $stmt_check->close();
         }
     } else {
         $mensagem = "Por favor, preenche todos os campos.";
@@ -44,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $con->close();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="pt-PT">
@@ -75,12 +107,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="date" name="data" class="form-control" required>
           </div>
 
-          <div class="mb-3">
-            <label for="tipo_combustivel" class="form-label">Tipo de Combustível</label>
-            <select name="tipo_combustivel" class="form-select" required>
-              <option value="Diesel">Diesel</option>
-            </select>
-          </div>
+         <div class="mb-3">
+          <label for="tipo_combustivel" class="form-label">Tipo de Combustível</label>
+          <select name="tipo_combustivel" class="form-select" required>
+            <option value="">Selecionar...</option>
+            <?php foreach ($tipos as $tipo): ?>
+              <option value="<?= htmlspecialchars($tipo) ?>"> 
+                <?= htmlspecialchars($tipo) ?>
+              </option>
+            <?php endforeach; ?>  
+          </select>
+        </div>
+
 
           <div class="mb-3">
             <label for="litros" class="form-label">Litros</label>
@@ -95,11 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="mb-3">
             <label for="localizacao" class="form-label">Localização</label>
             <select name="localizacao" class="form-select" required>
-              <option value="CIVTRIHI">CIVTRIHI</option>
-              <option value="Dep móvel">Dep móvel</option>
-              <option value="Redinha">Redinha</option>
-              <option value="Ribtejo">Ribtejo</option>
-              <option value="Venda Cruz">Venda Cruz</option>
+              <option value="">Selecionar...</option>
+              <?php foreach ($postos as $posto): ?>
+                <option value="<?= htmlspecialchars($posto) ?>"><?= htmlspecialchars($posto) ?></option>
+              <?php endforeach; ?>
             </select>
           </div>
 

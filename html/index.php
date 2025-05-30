@@ -18,21 +18,25 @@ $result = mysqli_query($con, $sql);
 $row = mysqli_fetch_assoc($result);
 $veiculos_manutencao = $row['total_manutencao'] ?? 0;
 
-// Somar litros de combustível
-$sql = "SELECT SUM(litros) AS litros FROM stock_combustivel";
-$result = mysqli_query($con, $sql);
-$row = mysqli_fetch_assoc($result);
+// Buscar nível de combustível da Redinha
+$query = "SELECT litros FROM stock_combustivel 
+          WHERE localizacao = 'Redinha' 
+          LIMIT 1";
+$res = mysqli_query($con, $query);
+$row = mysqli_fetch_assoc($res);
 $nivel_combustivel = $row['litros'] ?? 0;
 
-$capacidade_total = 10000;
+// Capacidade total da Redinha
+$capacidade_total = 10000; // ajusta conforme necessário
 $percentagem = ($nivel_combustivel / $capacidade_total) * 100;
 
+// Definir cor
 if ($percentagem > 50) {
     $cor = "#00BFFF";  // Azul
 } elseif ($percentagem > 35) {
-    $cor = "#FFFF00";  // amarelo
+    $cor = "#FFFF00";  // Amarelo
 } else {
-    $cor = "#FF0000";  // vermelho
+    $cor = "#FF0000";  // Vermelho
 }
 ?>
 
@@ -108,6 +112,8 @@ if ($percentagem > 50) {
             width: 0;
             transition: width 0.5s ease;
         }
+
+        
     </style>
   </head>
 
@@ -119,120 +125,117 @@ if ($percentagem > 50) {
         <!-- Menu -->
 
         <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
-          <div class="app-brand demo">
-            <a href="index.php" class="app-brand-link">
-              <span class="app-brand-logo demo">
-                <img src="../assets/img/ambipombal/ambipombal.png" alt="Logo" style="height: 35px;">
+  <div class="app-brand demo">
+    <a href="index.php" class="app-brand-link">
+      <span class="app-brand-logo demo">
+        <img src="../assets/img/ambipombal/ambipombal.png" alt="Logo" style="height: 35px;">
+      </span>
+      <span class="app-brand-text demo menu-text fw-bolder ms-2">Ambipombal</span>
+    </a>
 
-              </span>
-              <span class="app-brand-text demo menu-text fw-bolder ms-2">Ambipombal</span>
-            </a>
+    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+      <i class="bx bx-chevron-left bx-sm align-middle"></i>
+    </a>
+  </div>
 
-            <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
-              <i class="bx bx-chevron-left bx-sm align-middle"></i>
-            </a>
-          </div>
+  <div class="menu-inner-shadow"></div>
 
-          <div class="menu-inner-shadow"></div>
+  <ul class="menu-inner py-1">
+    <!-- Dashboard -->
+    <li class="menu-item active">
+      <a href="index.php" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-home-circle"></i>
+        <div data-i18n="Analytics">Dashboard</div>
+      </a>
+    </li>
 
-          <ul class="menu-inner py-1">
-            <!-- Dashboard -->
-            <li class="menu-item active">
-              <a href="index.php" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-home-circle"></i>
-                <div data-i18n="Analytics">Dashboard</div>
-              </a>
-            </li>
-            
-            <li class="menu-header small text-uppercase"><span class="menu-header-text">Abastecimentos</span></li>
+    <li class="menu-header small text-uppercase">
+      <span class="menu-header-text">Abastecimentos</span>
+    </li>
 
-            <li class="menu-item">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
-                <div data-i18n="Authentications">Abastecer</div>
-              </a>
-              <ul class="menu-sub">
-                <li class="menu-item">
-                  <a href="../lista_veiculos\ver_lista_veiculos.php" class="menu-link">
-                    <div data-i18n="Basic">Lista de Abastecimentos</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="../abastecimentos\registar_abast.php" class="menu-link">
-                    <div data-i18n="Basic">Inserir Abastecimento</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="../abastecimentos/importar_excel.php" class="menu-link">
-                    <div data-i18n="Basic">Importar Bomba</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="../abastecimentos\import_vei.php" class="menu-link">
-                    <div data-i18n="Basic">Veiculo</div>
-                  </a>
-                </li>
-              </ul>
-            </li>
+    <li class="menu-item">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
+        <div data-i18n="Authentications">Abastecer</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item">
+          <a href="../abastecimentos/lista_abastecimento.php" class="menu-link">
+            <div data-i18n="Basic">Lista de Abastecimentos</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="../abastecimentos/registar_abast.php" class="menu-link">
+            <div data-i18n="Basic">Inserir Abastecimento</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="../abastecimentos/importar_excel.php" class="menu-link">
+            <div data-i18n="Basic">Importar Bomba</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="../abastecimentos/import_vei.php" class="menu-link">
+            <div data-i18n="Basic">Veículo</div>
+          </a>
+        </li>
+      </ul>
+    </li>
 
-            <li class="menu-header small text-uppercase"><span class="menu-header-text">Veiculos</span></li>
+    <li class="menu-header small text-uppercase">
+      <span class="menu-header-text">Veículos</span>
+    </li>
 
-            
-            <li class="menu-item">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
-                <div data-i18n="Authentications">Veiculos</div>
-              </a>
-              <ul class="menu-sub">
-                <li class="menu-item">
-                  <a href="../lista_veiculos\ver_lista_veiculos.php" class="menu-link">
-                    <div data-i18n="Basic">Lista de Veiculos</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="../lista_veiculos\inserir_veiculo.php" class="menu-link">
-                    <div data-i18n="Basic">Inserir Veiculo</div>
-                  </a>
-                </li>
-              </ul>
-            </li>
+    <li class="menu-item">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
+        <div data-i18n="Authentications">Veículos</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item">
+          <a href="../lista_veiculos/ver_lista_veiculos.php" class="menu-link">
+            <div data-i18n="Basic">Lista de Veículos</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="../lista_veiculos/inserir_veiculo.php" class="menu-link">
+            <div data-i18n="Basic">Inserir Veículo</div>
+          </a>
+        </li>
+      </ul>
+    </li>
 
-           
+    <li class="menu-header small text-uppercase">
+      <span class="menu-header-text">Listas de Postos</span>
+    </li>
 
-            <li class="menu-item">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
-                <div data-i18n="Authentications">Listas de postos</div>
-              </a>
-              <ul class="menu-sub">
-                <li class="menu-item">
-                  <a href="../listas_postos\ver_lista_postos.php" class="menu-link">
-                    <div data-i18n="Basic">Ver Lista</div>
-                  </a>
-                </li>
-                <li class="menu-item">
-                  <a href="../listas_postos\inserir_lista.php" class="menu-link">
-                    <div data-i18n="Basic">Inserir Lista</div>
-                  </a>
-                </li>
-              </ul>
-            </li>
+    <li class="menu-item">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
+        <div data-i18n="Authentications">Listas de postos</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item">
+          <a href="../listas_postos/ver_lista_postos.php" class="menu-link">
+            <div data-i18n="Basic">Ver Lista</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="../listas_postos/inserir_lista.php" class="menu-link">
+            <div data-i18n="Basic">Inserir Lista</div>
+          </a>
+        </li>
+      </ul>
+    </li>
 
-             <li class="menu-item">
-              <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons bx bx-lock-open-alt"></i>
-                <div data-i18n="Authentications">Authentication   s</div>
-              </a>
-              <ul class="menu-sub">
-                <li class="menu-item">
-                  <a href="../php/logout.php" class="menu-link">
-                    <div data-i18n="Basic">Logout</div>
-                  </a>
-                </li>
-              </ul>
-            </li>
-            <!-- Components -->
-        </aside>
+     <div class="mt-auto p-3">
+    <a href="../php/logout.php" class="btn btn-danger w-100">
+      <i class="bx bx-log-out"></i> Logout
+    </a>
+  </div>
+  </ul>
+</aside>
+
         <!-- / Menu -->
 
         <!-- Layout container -->

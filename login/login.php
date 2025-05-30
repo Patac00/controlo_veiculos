@@ -2,6 +2,14 @@
 session_start();
 include("../php/config.php");
 
+// Verifica se existem cookies para preencher o formulário
+if (isset($_COOKIE['lembrar_email'])) {
+    $email_cookie = $_COOKIE['lembrar_email'];
+}
+if (isset($_COOKIE['lembrar_password'])) {
+    $password_cookie = $_COOKIE['lembrar_password'];
+}
+
 if (isset($_POST['submit'])) {
     $email = mysqli_real_escape_string($con, $_POST['email']);
     $password = $_POST['password'];
@@ -22,6 +30,7 @@ if (isset($_POST['submit'])) {
         $erro = "Email não encontrado. Por favor, registe-se primeiro.";
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -65,27 +74,35 @@ if (isset($_POST['submit'])) {
             <form id="formAuthentication" class="mb-3" action="" method="POST">
               <div class="mb-3">
                 <label for="email" class="form-label">Email</label>
-                <input type="text" class="form-control" id="email" name="email" placeholder="Introduza o seu email" required />
+                <input type="text" class="form-control" id="email" name="email" placeholder="Introduza o seu email" 
+                      value="<?= isset($email_cookie) ? $email_cookie : '' ?>" required />
               </div>
+
               <div class="mb-3 form-password-toggle">
                 <div class="d-flex justify-content-between">
                   <label class="form-label" for="password">Palavra-passe</label>
                   <a href="forgot_password.php"><small>Esqueceu-se?</small></a>
                 </div>
+
                 <div class="input-group input-group-merge">
-                  <input type="password" id="password" class="form-control" name="password" placeholder="********" required />
+                  <input type="password" id="password" class="form-control" name="password" placeholder="********"
+                        value="<?= isset($password_cookie) ? $password_cookie : '' ?>" required />
                   <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>
                 </div>
+
               </div>
+
               <div class="mb-3">
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="remember-me" />
-                  <label class="form-check-label" for="remember-me">Lembrar-me</label>
+                <input class="form-check-input" type="checkbox" id="remember-me" name="remember" />
+                <label class="form-check-label" for="remember-me">Manter sessão iniciada</label>
                 </div>
               </div>
+
               <div class="mb-3">
                 <button class="btn btn-primary d-grid w-100" type="submit" name="submit">Entrar</button>
               </div>
+
             </form>
 
             <p class="text-center">
@@ -104,5 +121,72 @@ if (isset($_POST['submit'])) {
   <script src="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
   <script src="../assets/vendor/js/menu.js"></script>
   <script src="../assets/js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+  document.getElementById("formAuthentication").addEventListener("submit", function (e) {
+    const form = this;
+    const remember = document.getElementById("remember-me").checked;
+
+    if (remember) {
+      e.preventDefault(); // bloqueia envio para perguntar
+
+      Swal.fire({
+        title: 'Guardar dados de login?',
+        text: 'Queres guardar o email e a palavra-passe neste dispositivo?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, guardar',
+        cancelButtonText: 'Não'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setCookie("lembrar_email", email, 30);
+          setCookie("lembrar_password", password, 30);
+        } else {
+          // Apaga os cookies para garantir que não fica nada guardado
+          setCookie("lembrar_email", "", -1);
+          setCookie("lembrar_password", "", -1);
+        }
+        form.submit(); // faz submit mesmo se for "Não"
+      });
+    }
+  });
+
+
+
+  // Preenche os campos se existirem cookies
+  window.onload = () => {
+    document.getElementById("email").value = getCookie("lembrar_email");
+    document.getElementById("password").value = getCookie("lembrar_password");
+  };
+
+
+
+  function setCookie(nome, valor, dias) {
+    const d = new Date();
+    d.setTime(d.getTime() + (dias * 24 * 60 * 60 * 1000));
+    const expira = "expires=" + d.toUTCString();
+    document.cookie = nome + "=" + valor + ";" + expira + ";path=/";
+  }
+
+  function getCookie(nome) {
+    const nomeEQ = nome + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1);
+      if (c.indexOf(nomeEQ) === 0) return c.substring(nomeEQ.length, c.length);
+    }
+    return "";
+  }
+
+  // Preenche os campos se existirem cookies
+  window.onload = () => {
+    document.getElementById("email").value = getCookie("email");
+    document.getElementById("password").value = getCookie("password");
+  };
+
+</script>
+
 </body>
 </html>
