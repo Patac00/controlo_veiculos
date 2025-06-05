@@ -4,8 +4,8 @@ if (!isset($_SESSION['id_utilizador'])) {
     header("Location: ../login/login.php");
     exit();
 }
-include("../php/config.php");
 
+include("../php/config.php");
 require '../vendor/autoload.php'; 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -14,31 +14,54 @@ function normalizaMotorista($valor) {
 }
 
 function normalizaMatricula($valor) {
-    return trim(strtoupper(str_replace(" ", "", $valor)));
+    $valor = strtoupper(str_replace([' ', '.', ','], '', $valor));
+    if (preg_match('/^[A-Z0-9]{6,7}$/', $valor)) {
+        return substr($valor, 0, 2) . '-' . substr($valor, 2, 2) . '-' . substr($valor, 4);
+    }
+    return $valor;
 }
 
 $dadosConvertidos = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
-    $arquivoTmp = $_FILES['excel_file']['tmp_name'];
-    $spreadsheet = IOFactory::load($arquivoTmp);
-    $sheet = $spreadsheet->getActiveSheet();
-    $linhas = $sheet->toArray();
-
-    foreach ($linhas as $i => $linha) {
-        if ($i == 0) continue; // ignora cabeçalho
-
-        $dadosConvertidos[] = [
-            'data' => $linha[0] ?? '',
-            'hora' => $linha[1] ?? '',
-            'numero_reg' => $linha[2] ?? '',
-            'odometro' => $linha[3] ?? '',
-            'motorista' => normalizaMotorista($linha[4] ?? ''),
-            'quantidade' => $linha[5] ?? '',
-        ];
+    if ($_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) {
+        echo "<p>Erro no upload do ficheiro.</p>";
+        exit();
     }
 
-    $_SESSION['dados_convertidos'] = $dadosConvertidos;
+    $arquivoTmp = $_FILES['excel_file']['tmp_name'];
+    $tipoMime = mime_content_type($arquivoTmp);
+    if (!in_array($tipoMime, [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel'
+    ])) {
+        echo "<p>Ficheiro inválido. Apenas Excel é permitido.</p>";
+        exit();
+    }
+
+    try {
+        $spreadsheet = IOFactory::load($arquivoTmp);
+        $sheet = $spreadsheet->getActiveSheet();
+        $linhas = $sheet->toArray();
+
+        foreach ($linhas as $i => $linha) {
+            if ($i == 0 || empty($linha[0])) continue; // ignora cabeçalho e linhas vazias
+
+            $dadosConvertidos[] = [
+                'data' => $linha[0] ?? '',
+                'hora' => $linha[1] ?? '',
+                'matricula' => normalizaMatricula($linha[2] ?? ''),
+                'odometro' => $linha[3] ?? '',
+                'motorista' => normalizaMotorista($linha[4] ?? ''),
+                'quantidade' => $linha[5] ?? '',
+            ];
+        }
+
+        $_SESSION['dados_convertidos'] = $dadosConvertidos;
+    } catch (Exception $e) {
+        echo "<p>Erro ao ler o ficheiro: " . $e->getMessage() . "</p>";
+        exit();
+    }
 }
 ?>
 
@@ -90,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             <tr>
                 <th>Data</th>
                 <th>Hora</th>
-                <th>Nº Registo</th>
+                <th>Matrícula</th>
                 <th>Odómetro</th>
                 <th>Motorista</th>
                 <th>Quantidade</th>
@@ -101,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
                 <tr>
                     <td><?= htmlspecialchars($linha['data']) ?></td>
                     <td><?= htmlspecialchars($linha['hora']) ?></td>
-                    <td><?= htmlspecialchars($linha['numero_reg']) ?></td>
+                    <td><?= htmlspecialchars($linha['matricula']) ?></td>
                     <td><?= htmlspecialchars($linha['odometro']) ?></td>
                     <td><?= htmlspecialchars($linha['motorista']) ?></td>
                     <td><?= htmlspecialchars($linha['quantidade']) ?></td>
