@@ -21,6 +21,14 @@ function normalizaMatricula($valor) {
     return $valor;
 }
 
+function converteData($data) {
+    $partes = explode('/', $data);
+    if (count($partes) === 3) {
+        return $partes[2] . '-' . $partes[1] . '-' . $partes[0];
+    }
+    return $data;
+}
+
 $dadosConvertidos = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
@@ -50,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             $dadosConvertidos[] = [
                 'data' => $linha[0] ?? '',
                 'hora' => $linha[1] ?? '',
-                'matricula' => normalizaMatricula($linha[2] ?? ''),
+                'matricula' => normalizaMatricula($linha[2] ?? ''), // interface mantém "matricula"
                 'odometro' => $linha[3] ?? '',
                 'motorista' => normalizaMotorista($linha[4] ?? ''),
                 'quantidade' => $linha[5] ?? '',
@@ -62,6 +70,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         echo "<p>Erro ao ler o ficheiro: " . $e->getMessage() . "</p>";
         exit();
     }
+}
+
+// Guardar dados na base de dados
+if (isset($_POST['guardar']) && isset($_SESSION['dados_convertidos'])) {
+    $dados = $_SESSION['dados_convertidos'];
+
+    // Buscar veículos da BD
+    $veiculos = [];
+    $res = $con->query("SELECT id_veiculo, Matricula FROM veiculos");
+    while ($v = $res->fetch_assoc()) {
+        $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $v['Matricula']));
+        $veiculos[$matriculaLimpa] = $v['id_veiculo'];
+    }
+
+    foreach ($dados as $linha) {
+        $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $linha['matricula']));
+        $id_veiculo = $veiculos[$matriculaLimpa] ?? "NULL";
+
+        $data = converteData(mysqli_real_escape_string($con, $linha['data']));
+        $hora = mysqli_real_escape_string($con, $linha['hora']);
+        $numero_reg = mysqli_real_escape_string($con, $linha['matricula']); // usa aqui para o campo da tabela
+        $odometro = (int) $linha['odometro'];
+        $motorista = mysqli_real_escape_string($con, $linha['motorista']);
+        $quantidade = (float) $linha['quantidade'];
+
+        $sql = "INSERT INTO bomba_redinha (data, hora, id_veiculo, numero_reg, odometro, motorista, quantidade) 
+                VALUES ('$data', '$hora', $id_veiculo, '$numero_reg', $odometro, '$motorista', $quantidade)";
+        $con->query($sql);
+    }
+
+    echo "<p style='color: green;'>Dados guardados com sucesso!</p>";
+    unset($_SESSION['dados_convertidos']);
 }
 ?>
 
@@ -133,9 +173,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         </tbody>
     </table>
 
-    <form method="post" action="converter_dados.php">
-        <button type="submit">Continuar</button>
+    <form method="post">
+        <button type="submit" name="guardar">Guardar na Base de Dados</button>
     </form>
+
 <?php endif; ?>
 
 </body>

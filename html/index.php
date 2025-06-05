@@ -38,6 +38,29 @@ if ($percentagem > 50) {
 } else {
     $cor = "#FF0000";  // Vermelho
 }
+// Atualizar mês de abastecimento dinamico
+$sql = "SELECT COUNT(*) AS total 
+        FROM abastecimentos 
+        WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) 
+        AND YEAR(data_abastecimento) = YEAR(CURDATE())";
+$result = mysqli_query($con, $sql);
+$row = mysqli_fetch_assoc($result);
+$total_mes_atual = $row['total'];
+
+// Query para abastecimentos do mês atual
+$sql = "SELECT COUNT(*) AS total 
+        FROM abastecimentos 
+        WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) 
+        AND YEAR(data_abastecimento) = YEAR(CURDATE())";
+$result = mysqli_query($con, $sql);
+$row = mysqli_fetch_assoc($result);
+$total_mes = $row['total'];
+
+// Nome do mês em português
+setlocale(LC_TIME, 'pt_PT.UTF-8');
+$mes_atual = strftime('%B');
+
+
 ?>
 
 
@@ -370,8 +393,9 @@ if ($percentagem > 50) {
                 </div>
               </div>
               <span class="fw-semibold d-block mb-1">Nº Abastecimentos este mês</span>
-              <h3 class="card-title mb-2"></h3>
-              <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i>%</small>
+              <h3 class="card-title mb-2"><?= $total_mes ?></h3>
+              <small class="text-muted"><?= ucfirst($mes_atual) ?></small>
+
             </div>
           </div>
         </div>
