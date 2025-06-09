@@ -56,9 +56,14 @@ $result = mysqli_query($con, $sql);
 $row = mysqli_fetch_assoc($result);
 $total_mes = $row['total'];
 
+
+
 // Nome do mês em português
-setlocale(LC_TIME, 'pt_PT.UTF-8');
-$mes_atual = strftime('%B');
+setlocale(LC_TIME, 'pt_PT.UTF-8'); // tenta garantir o idioma
+$formatter = new \IntlDateFormatter('pt_PT', \IntlDateFormatter::LONG, \IntlDateFormatter::NONE);
+$formatter->setPattern('MMMM');
+$mes_atual = $formatter->format(new \DateTime());
+
 
 
 ?>

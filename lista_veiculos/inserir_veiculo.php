@@ -45,6 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    
+
 ?>
 
 <!DOCTYPE html>
@@ -121,22 +123,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
 <div class="container">
-    <h2>Inserir Veículo</h2>
 
     <?php if ($msg): ?>
         <div class="msg <?= strpos($msg, 'sucesso') !== false ? 'success' : '' ?>"><?= $msg ?></div>
     <?php endif; ?>
 
+    <h2>Inserir Veículo</h2>
+
     <form action="" method="POST">
+        <!-- Linha: KM | Horas -->
+        <label>Tipo de Medida:</label>
+        <select id="tipo_medida" name="tipo_medida" required>
+            <option value="">-- Selecionar --</option>
+            <option value="km">KM</option>
+            <option value="horas">Horas</option>
+        </select>
+
+        <!-- Matrícula -->
         <label>Matrícula:</label>
         <input type="text" name="matricula" required maxlength="15" />
 
+        <!-- Marca -->
         <label>Marca:</label>
         <input type="text" name="marca" required />
 
+        <!-- Modelo -->
         <label>Modelo:</label>
         <input type="text" name="modelo" required />
 
+        <!-- Tipo de Veículo -->
         <label>Tipo de Veículo:</label>
         <select name="tipo_veiculo" required>
             <option value="">-- Selecionar --</option>
@@ -146,21 +161,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="Outro">Outro</option>
         </select>
 
+        <!-- Empresa Atual -->
         <label>Empresa Atual:</label>
         <select name="empresa_atual_id" required>
-            <option value="">-- Selecionar Empresa --</option>
+            <option value="">Selecionar Empresa</option>
             <?php foreach ($empresas as $empresa): ?>
-                <option value="<?= $empresa['id_empresa'] ?>">
-                    <?= htmlspecialchars($empresa['nome']) ?>
-                </option>
-
+                <option value="<?= $empresa['id_empresa'] ?>"><?= htmlspecialchars($empresa['nome']) ?></option>
             <?php endforeach; ?>
         </select>
 
+        <!-- KM ou Horas -->
+        <div id="input_km" style="display:none;">
+            <label>KM Atual:</label>
+            <input type="number" name="km_atual" min="0" />
+        </div>
 
-        <label>KM Atual:</label>
-        <input type="number" name="km_atual" required min="0" />
+        <div id="input_horas" style="display:none;">
+            <label>Horas Atual:</label>
+            <input type="number" name="horas_atual" min="0" />
+        </div>
 
+        <!-- Estado -->
         <label>Estado:</label>
         <select name="estado" required>
             <option value="">-- Selecionar --</option>
@@ -172,9 +193,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit">Guardar Veículo</button>
     </form>
 
+
     <a class="back-btn" href="ver_lista_veiculos.php">← Ver Lista de Veículos</a>
     <a class="back-btn" href="../html/index.php">← Voltar ao Início</a>
 </div>
+<script>
+document.getElementById('tipo_medida').addEventListener('change', function () {
+    const kmDiv = document.getElementById('input_km');
+    const horasDiv = document.getElementById('input_horas');
+
+    if (this.value === 'km') {
+        kmDiv.style.display = 'block';
+        horasDiv.style.display = 'none';
+        document.querySelector('input[name="km_atual"]').required = true;
+        document.querySelector('input[name="horas_atual"]').required = false;
+    } else if (this.value === 'horas') {
+        kmDiv.style.display = 'none';
+        horasDiv.style.display = 'block';
+        document.querySelector('input[name="km_atual"]').required = false;
+        document.querySelector('input[name="horas_atual"]').required = true;
+    } else {
+        kmDiv.style.display = 'none';
+        horasDiv.style.display = 'none';
+        document.querySelector('input[name="km_atual"]').required = false;
+        document.querySelector('input[name="horas_atual"]').required = false;
+    }
+});
+</script>
 
 </body>
 </html>

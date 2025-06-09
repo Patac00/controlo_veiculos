@@ -42,24 +42,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $msg = "Por favor preencha todos os campos obrigatórios.";
     } else {
         // Prepared statement para inserir
-        $stmt = $con->prepare("INSERT IN  TO abastecimentos 
-            (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, id_tipo_combustivel, observacoes, valor_total) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $con->prepare("INSERT INTO abastecimentos 
+        (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, id_tipo_combustivel, observacoes, valor_total) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
         if ($stmt === false) {
             $msg = "Erro na preparação da query: " . $con->error;
-        } else {
-            $stmt->bind_param(
-                "iisiiddsd",
-                $id_veiculo,
-                $id_utilizador,
-                $data_abastecimento,
-                $km_registados,
-                $id_posto,
-                $litros,
-                $id_tipo_combustivel,
-                $observacoes,
-                $valor_total
-            );
+        } else {                    
+                $stmt->bind_param("iisiddids", 
+                    $id_veiculo, 
+                    $id_utilizador, 
+                    $data_abastecimento, 
+                    $km_registados, 
+                    $id_posto, 
+                    $litros, 
+                    $id_tipo_combustivel, 
+                    $observacoes, 
+                    $valor_total
+                );
 
             if ($stmt->execute()) {
                 $msg = "Abastecimento registado com sucesso!";
@@ -75,14 +75,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 if (isset($_GET['acao']) && $_GET['acao'] === 'obter_km' && isset($_GET['id_veiculo'])) {
     $id_veiculo = intval($_GET['id_veiculo']);
     $sql = "SELECT km_registados, data_abastecimento FROM abastecimentos WHERE id_veiculo = $id_veiculo ORDER BY data_abastecimento DESC LIMIT 1";
+    $sql = "SELECT km_atual, data_atualizacao FROM veiculos WHERE id_veiculo = $id_veiculo";
+
     $res = mysqli_query($con, $sql);
-    if ($res && mysqli_num_rows($res) > 0) {
-        $row = mysqli_fetch_assoc($res);
-        echo json_encode([
-            'km' => intval($row['km_registados']),
-            'data' => $row['data_abastecimento']
-        ]);
-    } else {
+if ($res && mysqli_num_rows($res) > 0) {
+    $row = mysqli_fetch_assoc($res);
+    echo json_encode([
+        'km' => intval($row['km_atual']),
+        'data' => $row['data_atualizacao']
+    ]);
+}
+else {
         echo json_encode(['km' => 0, 'data' => 'Nenhum registo anterior']);
     }
     exit;
@@ -212,7 +215,8 @@ while ($row = mysqli_fetch_assoc($res)) {
 
     <!-- Mostrar último KM e data -->
     <label>Último Registo:</label>
-    <input type="number" name="km_registados" id="km_registados" required min="<?= $kmAnterior ?>">
+    <input type="text" id="ultimo_km_data" readonly>
+
 
 
     <!-- Campo hidden para guardar km anteriores -->
@@ -221,6 +225,7 @@ while ($row = mysqli_fetch_assoc($res)) {
     <!-- Input KM atual -->
     <label>KM Atuais:</label>
     <input type="number" name="km_registados" id="km_registados" required>
+    
 
     <!-- Select Utilizador -->
     <input type="hidden" name="id_utilizador" value="<?= $_SESSION['id_utilizador'] ?>">
@@ -303,17 +308,20 @@ while ($row = mysqli_fetch_assoc($res)) {
     }
 
     fetch(`<?= basename(__FILE__) ?>?acao=obter_km&id_veiculo=${idVeiculo}`)
-      .then(response => response.json())
-      .then(data => {
-        kmAnteriores = parseInt(data.km) || 0;
-        document.getElementById('km_anteriores').value = kmAnteriores;
-        if (data.km > 0) {
-          document.getElementById('ultimo_km_data').value = `Último KM: ${data.km} | Data: ${data.data}`;
-        } else {
-          document.getElementById('ultimo_km_data').value = "Nenhum registo anterior";
-        }
-        document.getElementById('km_registados').value = '';
-      });
+    .then(response => response.json())
+    .then(data => {
+      kmAnteriores = parseInt(data.km) || 0;
+      document.getElementById('km_anteriores').value = kmAnteriores; // <-- ESTA LINHA FALTAVA!
+
+      if (data.km > 0) {
+        document.getElementById('ultimo_km_data').value = `Último KM: ${data.km} | Data: ${data.data}`;
+      } else {
+        document.getElementById('ultimo_km_data').value = "Nenhum registo anterior";
+      }
+
+      document.getElementById('km_registados').value = '';
+    });
+
   });
 
   // Validação KM atual: não pode ser inferior ao anterior
@@ -326,6 +334,7 @@ while ($row = mysqli_fetch_assoc($res)) {
       alert(`Erro: Os KM registados não podem ser inferiores ao último valor registado (${kmAnteriores} KM).`);
     }
   });
+  
 
 </script>
 
