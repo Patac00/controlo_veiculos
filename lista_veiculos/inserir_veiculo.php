@@ -14,8 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $modelo = mysqli_real_escape_string($con, $_POST['modelo']);
     $tipo_veiculo = mysqli_real_escape_string($con, $_POST['tipo_veiculo']);
     $empresa_atual_id = (int)$_POST['empresa_atual_id'];
-    $km_atual = (int)$_POST['km_atual'];
+    $tipo_medida = $_POST['tipo_medida']; // km ou horas
     $estado = mysqli_real_escape_string($con, $_POST['estado']);
+
+    // Definir km_atual e horas_atual conforme tipo_medida
+    $km_atual = ($tipo_medida === 'km') ? (int)$_POST['km_atual'] : null;
+    $horas_atual = ($tipo_medida === 'horas') ? (int)$_POST['horas_atual'] : null;
 
     // Verificar se a matrícula já existe
     $check_sql = "SELECT * FROM veiculos WHERE matricula = '$matricula'";
@@ -24,8 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (mysqli_num_rows($check_result) > 0) {
         $msg = "Erro: Veículo com esta matrícula já existe.";
     } else {
-        $sql = "INSERT INTO veiculos (matricula, marca, modelo, tipo_veiculo, empresa_atual_id, km_atual, estado) 
-                VALUES ('$matricula', '$marca', '$modelo', '$tipo_veiculo', $empresa_atual_id, $km_atual, '$estado')";
+        // Inserir na BD os dois campos km_atual e horas_atual (um deles será NULL)
+        $sql = "INSERT INTO veiculos (matricula, marca, modelo, tipo_veiculo, empresa_atual_id, km_atual, horas_atual, estado) 
+                VALUES ('$matricula', '$marca', '$modelo', '$tipo_veiculo', $empresa_atual_id, " . 
+                ($km_atual !== null ? $km_atual : "NULL") . ", " . 
+                ($horas_atual !== null ? $horas_atual : "NULL") . ", '$estado')";
 
         if (mysqli_query($con, $sql)) {
             $msg = "Veículo inserido com sucesso.";
@@ -34,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
     // Buscar empresas
     $empresas = [];
     $empresas_sql = "SELECT id_empresa, nome FROM empresas ORDER BY nome ASC";
