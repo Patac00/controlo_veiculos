@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
     <script>
     window.onload = function() {
-        const matriculaInput = document.querySelector('input[name="Matricula"]');
+        const matriculaInput = document.querySelector('input[name="matricula"]');
         const avisoDiv = document.createElement('div');
         avisoDiv.style.color = 'orange';
         avisoDiv.style.marginBottom = '10px';
@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="matricula_antiga" value="<?= htmlspecialchars($matricula_antiga) ?>" />
 
         <label>Matrícula:</label>
-        <input type="text" name="Matricula" required maxlength="15" value="<?= htmlspecialchars($veiculo['Matricula']) ?>" />
+        <input type="text" name="Matricula" required maxlength="15" value="<?= htmlspecialchars($veiculo['matricula']) ?>" />
 
         <label>Descrição:</label>
         <input type="text" name="Descricao" required value="<?= htmlspecialchars($veiculo['Descricao']) ?>" />
