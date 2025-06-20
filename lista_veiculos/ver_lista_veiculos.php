@@ -164,6 +164,7 @@ $result = mysqli_query($con, $sql);
     <thead>
       <tr>
         <th><input type="text" name="matricula" placeholder="Matrícula" value="<?= htmlspecialchars($_GET['matricula'] ?? '') ?>"></th>
+        
         <th><input type="text" name="descricao" placeholder="Descrição" value="<?= htmlspecialchars($_GET['descricao'] ?? '') ?>"></th>
         <th>
           <select name="empresa_atual_id">
@@ -197,7 +198,10 @@ $result = mysqli_query($con, $sql);
         <th>Empresa</th>
         <th>Tipo</th>
         <th>Grupo</th>
-        <th>KMs</th>
+        <th>km totais</th>
+        <th>l/100km</th>
+        <th>Horas totais</th>
+        <th>l/Hora</th>
         <th>Estado</th>
         <th>Ações</th>
       </tr>
@@ -207,15 +211,18 @@ $result = mysqli_query($con, $sql);
     <tbody>
       <?php while ($row = mysqli_fetch_assoc($result)): ?>
         <tr>
-          <td><?= htmlspecialchars($row['Matricula'] ?? '') ?></td>
+          <td><?= htmlspecialchars($row['matricula'] ?? '') ?></td>
           <td><?= htmlspecialchars($row['Descricao'] ?? '') ?></td>
           <td><?= htmlspecialchars($row['nome_empresa'] ?? '') ?></td>
           <td><?= htmlspecialchars($row['Tipo'] ?? '') ?></td>
           <td><?= htmlspecialchars($row['Grupo'] ?? '') ?></td>
           <td><?= htmlspecialchars($row['km_atual'] ?? '') ?></td>
+          <td><?= htmlspecialchars($row['l/100km'] ?? '') ?></td>
+          <td><?= htmlspecialchars($row['horas_atual'] ?? '') ?></td>
+          <td><?= htmlspecialchars($row['l/hora'] ?? '') ?></td>
           <td><?= htmlspecialchars($row['estado'] ?? '') ?></td>
-          <td>
-            <a href="editar_veiculo.php?matricula=<?= urlencode($row['Matricula'] ?? '') ?>" class="edit-btn">Editar</a>
+          <td>  
+            <a href="editar_veiculo.php?matricula=<?= urlencode($row['matricula'] ?? '') ?>" class="edit-btn">Editar</a>
           </td>
         </tr>
       <?php endwhile; ?>

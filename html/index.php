@@ -429,16 +429,16 @@ $mes_atual = $formatter->format(new \DateTime());
             </div>
           </div>
         </div>
+       <!-- Linha com Card Redinha + Botões -->
+        <div class="row mb-4">
 
-          <!-- Card Combustível -->
+          <!-- Card Combustível Redinha -->
           <div class="col-md-4 mb-4">
             <div class="card">
               <div class="card-body">
                 <div class="card-title d-flex align-items-start justify-content-between">
-                        <h2>Redinha</h2>
-                    <button >
-                      <a class="dropdown-item" href="../abastecimentos/fornecer_comb.php">+ detalhes</a>
-                    </button>
+                  <h2>Redinha</h2>
+                  <a class="dropdown-item" href="../abastecimentos/fornecer_comb.php">+ detalhes</a>
                 </div>
                 <strong>Nível de Combustível:</strong> <?php echo number_format($nivel_combustivel, 2); ?> litros<br />
                 <div class="progress-bar" style="background-color: #eee;">
@@ -447,9 +447,24 @@ $mes_atual = $formatter->format(new \DateTime());
                 <small><?php echo number_format($percentagem, 2); ?>% da capacidade total</small>
               </div>
             </div>
-          </div>          
+          </div>
+
+          <!-- Botões de Relatórios (à direita do card) -->
+          <div class="col-md-4 mb-4">
+            <div class="card h-100">
+              <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                <h5 class="mb-3">Relatórios</h5>
+                <a href="../relatorios/relt_mensal.php" class="btn btn-primary mb-2 w-100">
+                  <i class="bx bx-calendar"></i> Mensal
+                </a>
+                <a href="../relatorios/relt_veiculo.php" class="btn btn-secondary w-100">
+                  <i class="bx bx-car"></i> Por Veículo
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+
 
       <!-- Overlay -->
       <div class="layout-overlay layout-menu-toggle"></div>

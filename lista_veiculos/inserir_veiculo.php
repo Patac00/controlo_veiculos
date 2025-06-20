@@ -13,24 +13,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $marca = mysqli_real_escape_string($con, $_POST['marca']);
     $modelo = mysqli_real_escape_string($con, $_POST['modelo']);
     $tipo_veiculo = mysqli_real_escape_string($con, $_POST['tipo_veiculo']);
+    $grupo = mysqli_real_escape_string($con, $_POST['grupo']);
     $empresa_atual_id = (int)$_POST['empresa_atual_id'];
-    $tipo_medida = $_POST['tipo_medida']; // km ou horas
+    $tipo_medida = $_POST['tipo_medida'];
     $estado = mysqli_real_escape_string($con, $_POST['estado']);
 
-    // Definir km_atual e horas_atual conforme tipo_medida
+    // Gerar a Descrição
+    $descricao = $marca . ' ' . $modelo;
+
     $km_atual = ($tipo_medida === 'km') ? (int)$_POST['km_atual'] : null;
     $horas_atual = ($tipo_medida === 'horas') ? (int)$_POST['horas_atual'] : null;
 
-    // Verificar se a matrícula já existe
+    // Verificar duplicação
     $check_sql = "SELECT * FROM veiculos WHERE matricula = '$matricula'";
     $check_result = mysqli_query($con, $check_sql);
 
     if (mysqli_num_rows($check_result) > 0) {
         $msg = "Erro: Veículo com esta matrícula já existe.";
     } else {
-        // Inserir na BD os dois campos km_atual e horas_atual (um deles será NULL)
-        $sql = "INSERT INTO veiculos (matricula, marca, modelo, tipo_veiculo, empresa_atual_id, km_atual, horas_atual, estado) 
-                VALUES ('$matricula', '$marca', '$modelo', '$tipo_veiculo', $empresa_atual_id, " . 
+        $sql = "INSERT INTO veiculos (matricula, Descricao, empresa_atual_id, Tipo, Grupo, km_atual, horas_atual, estado) 
+                VALUES ('$matricula', '$descricao', $empresa_atual_id, '$tipo_veiculo', '$grupo', " . 
                 ($km_atual !== null ? $km_atual : "NULL") . ", " . 
                 ($horas_atual !== null ? $horas_atual : "NULL") . ", '$estado')";
 
@@ -42,21 +44,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-    // Buscar empresas
-    $empresas = [];
-    $empresas_sql = "SELECT id_empresa, nome FROM empresas ORDER BY nome ASC";
-
-    $empresas_result = mysqli_query($con, $empresas_sql);
-    if ($empresas_result) {
-        while ($row = mysqli_fetch_assoc($empresas_result)) {
-            $empresas[] = $row;
-        }
+// Buscar empresas
+$empresas = [];
+$empresas_sql = "SELECT id_empresa, nome FROM empresas ORDER BY nome ASC";
+$empresas_result = mysqli_query($con, $empresas_sql);
+if ($empresas_result) {
+    while ($row = mysqli_fetch_assoc($empresas_result)) {
+        $empresas[] = $row;
     }
+}
 
-    
+// Buscar grupos
+
+$grupos = [];
+$grupos_sql = "SELECT nome FROM grupos ORDER BY nome ASC";
+$grupos_result = mysqli_query($con, $grupos_sql);
+if ($grupos_result) {
+    while ($row = mysqli_fetch_assoc($grupos_result)) {
+        $grupos[] = $row;
+    }
+}
+
 
 ?>
-
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -131,7 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
 <div class="container">
-
     <?php if ($msg): ?>
         <div class="msg <?= strpos($msg, 'sucesso') !== false ? 'success' : '' ?>"><?= $msg ?></div>
     <?php endif; ?>
@@ -139,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h2>Inserir Veículo</h2>
 
     <form action="" method="POST">
-        <!-- Linha: KM | Horas -->
+        <!-- Tipo de Medida -->
         <label>Tipo de Medida:</label>
         <select id="tipo_medida" name="tipo_medida" required>
             <option value="">-- Selecionar --</option>
@@ -169,21 +178,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="Outro">Outro</option>
         </select>
 
-        <!-- Empresa Atual -->
+        <!-- Empresa -->
         <label>Empresa Atual:</label>
         <select name="empresa_atual_id" required>
-            <option value="">Selecionar Empresa</option>
+            <option value="">-- Selecionar --</option>
             <?php foreach ($empresas as $empresa): ?>
                 <option value="<?= $empresa['id_empresa'] ?>"><?= htmlspecialchars($empresa['nome']) ?></option>
             <?php endforeach; ?>
         </select>
 
-        <!-- KM ou Horas -->
+        <!-- Grupo -->
+        <label>Grupo:</label>
+        <select name="grupo" required>
+            <option value="">-- Selecionar --</option>
+            <?php foreach ($grupos as $g): ?>
+                <option value="<?= htmlspecialchars($g['nome']) ?>"><?= htmlspecialchars($g['nome']) ?></option>
+            <?php endforeach; ?>
+        </select>
+
+        <!-- KM -->
         <div id="input_km" style="display:none;">
             <label>KM Atual:</label>
             <input type="number" name="km_atual" min="0" />
         </div>
 
+        <!-- Horas -->
         <div id="input_horas" style="display:none;">
             <label>Horas Atual:</label>
             <input type="number" name="horas_atual" min="0" />
@@ -201,10 +220,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit">Guardar Veículo</button>
     </form>
 
-
     <a class="back-btn" href="ver_lista_veiculos.php">← Ver Lista de Veículos</a>
     <a class="back-btn" href="../html/index.php">← Voltar ao Início</a>
 </div>
+
 <script>
 document.getElementById('tipo_medida').addEventListener('change', function () {
     const kmDiv = document.getElementById('input_km');
