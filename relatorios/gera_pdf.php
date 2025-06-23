@@ -67,10 +67,9 @@ while ($row = mysqli_fetch_assoc($res)) {
 $pdf = new TCPDF();
 $pdf->SetCreator(PDF_CREATOR);
 $pdf->SetAuthor('Ambipombal');
-$pdf->SetTitle('Relatório de Abastecimentos por Veiculo');
+$pdf->SetTitle('Relatório de Abastecimentos por Veículo');
 $pdf->SetMargins(15, 15, 15);
-$pdf->AddPage('L');  // Aqui está em paisagem
-
+$pdf->AddPage('L'); // Paisagem
 
 if (empty($dados)) {
     $pdf->Write(0, 'Nenhum dado encontrado para os filtros aplicados.', '', 0, 'L', true, 0, false, false, 0);
@@ -78,61 +77,82 @@ if (empty($dados)) {
     exit;
 }
 
-// Criar HTML
-$html = '<h2 style="text-align:center;">Relatório de Abastecimentos</h2>';
-$html .= '<table border="1" cellpadding="4" cellspacing="0">
-<thead>
-    <tr style="background-color:#004080; color:white;">
-        <th>Grupo</th>
-        <th>Matrícula</th>
-        <th>KM</th>
-        <th>Funcionário</th>
-        <th>Local</th>
-        <th>Requisição</th>
-        <th>Litros</th>
-        <th>Total (€)</th>
-        <th>Total s/IVA (€)</th>
+// Ordenar os dados
+usort($dados, function($a, $b) {
+    return $a['Grupo'] <=> $b['Grupo']
+        ?: strcmp($a['matricula'], $b['matricula'])
+        ?: $a['km'] <=> $b['km'];
+});
+
+// HTML da tabela
+$html = '<h2 style="text-align:center; color:#004080;">Relatório de Abastecimentos</h2>';
+$html .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; font-family: Arial, sans-serif;">';
+$html .= '<thead>
+    <tr style="background-color:#004080; color:#fff; font-weight: bold;">
+        <th style="width:12%;">Matrícula</th>
+        <th style="width:8%;">KM</th>
+        <th style="width:18%;">Funcionário</th>
+        <th style="width:12%;">Local</th>
+        <th style="width:18%;">Requisição</th>
+        <th style="width:8%; text-align:right;">Litros</th>
+        <th style="width:12%; text-align:right;">Total (€)</th>
+        <th style="width:12%; text-align:right;">Total s/IVA (€)</th>
     </tr>
 </thead><tbody>';
 
-$totais_grupo = [];
+$grupo_atual = null;
+$subtotal = 0;
 $total_geral = 0;
 
 foreach ($dados as $d) {
-    $grupo = $d['Grupo'];
-    if (!isset($totais_grupo[$grupo])) $totais_grupo[$grupo] = 0;
-    $totais_grupo[$grupo] += (float)$d['valor_total'];
-    $total_geral += (float)$d['valor_total'];
+    if ($d['Grupo'] !== $grupo_atual) {
+        if ($grupo_atual !== null) {
+            $html .= '<tr style="background-color:#e0f7ff; font-weight:bold;">
+                <td colspan="6" style="text-align:right;">Total ' . htmlspecialchars($grupo_atual) . ':</td>
+                <td style="text-align:right;">' . number_format($subtotal, 2, ',', '.') . ' €</td>
+                <td></td>
+            </tr>';
+            $subtotal = 0;
+        }
+        $grupo_atual = $d['Grupo'];
+        $html .= '<tr style="background-color:#cce6ff; font-weight:bold;">
+            <td colspan="8">Grupo: ' . htmlspecialchars($grupo_atual) . '</td>
+        </tr>';
+    }
 
-    $html .= "<tr>
-        <td>{$d['Grupo']}</td>
-        <td>{$d['matricula']}</td>
-        <td>{$d['km']}</td>
-        <td>{$d['funcionario']}</td>
-        <td>{$d['local']}</td>
-        <td>" . ($d['requisicao'] ?: '-') . "</td>
-        <td>{$d['litros']}</td>
-        <td>" . number_format($d['valor_total'], 2, ',', '.') . "</td>
-        <td>" . number_format($d['valor_sem_iva'], 2, ',', '.') . "</td>
-    </tr>";
+    $html .= '<tr>
+        <td>' . htmlspecialchars($d['matricula']) . '</td>
+        <td style="text-align:center;">' . htmlspecialchars($d['km']) . '</td>
+        <td>' . htmlspecialchars($d['funcionario']) . '</td>
+        <td>' . htmlspecialchars($d['local']) . '</td>
+        <td>' . ($d['requisicao'] ? htmlspecialchars($d['requisicao']) : '-') . '</td>
+        <td style="text-align:right;">' . number_format($d['litros'], 2, ',', '.') . '</td>
+        <td style="text-align:right;">' . number_format($d['valor_total'], 2, ',', '.') . '</td>
+        <td style="text-align:right;">' . number_format($d['valor_sem_iva'], 2, ',', '.') . '</td>
+    </tr>';
+
+    $subtotal += (float)$d['valor_total'];
+    $total_geral += (float)$d['valor_total'];
 }
 
-// Totais por grupo
-foreach ($totais_grupo as $grupo => $total) {
-    $html .= "<tr style='font-weight:bold;background:#e0f7ff;'>
-        <td colspan='7' align='right'>Total {$grupo}:</td>
-        <td colspan='2'>" . number_format($total, 2, ',', '.') . " €</td>
-    </tr>";
+// Último subtotal
+if ($grupo_atual !== null) {
+    $html .= '<tr style="background-color:#e0f7ff; font-weight:bold;">
+        <td colspan="6" style="text-align:right;">Total ' . htmlspecialchars($grupo_atual) . ':</td>
+        <td style="text-align:right;">' . number_format($subtotal, 2, ',', '.') . ' €</td>
+        <td></td>
+    </tr>';
 }
 
 // Total geral
-$html .= "<tr style='font-weight:bold;background:#cceeff;'>
-    <td colspan='7' align='right'>Total Geral:</td>
-    <td colspan='2'>" . number_format($total_geral, 2, ',', '.') . " €</td>
-</tr>";
+$html .= '<tr style="background-color:#99ccff; font-weight:bold; font-size: 1.1em;">
+    <td colspan="6" style="text-align:right;">Total Geral:</td>
+    <td style="text-align:right;">' . number_format($total_geral, 2, ',', '.') . ' €</td>
+    <td></td>
+</tr>';
 
 $html .= '</tbody></table>';
 
-// Escrever HTML no PDF
+// Escrever no PDF
 $pdf->writeHTML($html, true, false, true, false, '');
 $pdf->Output('relatorio_abastecimentos.pdf', 'I');
