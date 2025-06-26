@@ -24,15 +24,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $km_atual = ($tipo_medida === 'km') ? (int)$_POST['km_atual'] : null;
     $horas_atual = ($tipo_medida === 'horas') ? (int)$_POST['horas_atual'] : null;
 
-    // Verificar duplicação
-    $check_sql = "SELECT * FROM veiculos WHERE matricula = '$matricula'";
-    $check_result = mysqli_query($con, $check_sql);
-
-    if (mysqli_num_rows($check_result) > 0) {
-        $msg = "Erro: Veículo com esta matrícula já existe.";
+    // Se tipo medida for horas e matricula vazia, colocar NULL
+    if ($tipo_medida === 'horas' && empty($matricula)) {
+        $matricula = null;
     } else {
+        // Verificar duplicação só se matricula não for null
+        $check_sql = "SELECT * FROM veiculos WHERE matricula = '$matricula'";
+        $check_result = mysqli_query($con, $check_sql);
+
+        if (mysqli_num_rows($check_result) > 0) {
+            $msg = "Erro: Veículo com esta matrícula já existe.";
+        }
+    }
+
+    if (!$msg) {
         $sql = "INSERT INTO veiculos (matricula, Descricao, empresa_atual_id, Tipo, Grupo, km_atual, horas_atual, estado) 
-                VALUES ('$matricula', '$descricao', $empresa_atual_id, '$tipo_veiculo', '$grupo', " . 
+                VALUES (" . ($matricula !== null ? "'$matricula'" : "NULL") . ", '$descricao', $empresa_atual_id, '$tipo_veiculo', '$grupo', " . 
                 ($km_atual !== null ? $km_atual : "NULL") . ", " . 
                 ($horas_atual !== null ? $horas_atual : "NULL") . ", '$estado')";
 
@@ -55,7 +62,6 @@ if ($empresas_result) {
 }
 
 // Buscar grupos
-
 $grupos = [];
 $grupos_sql = "SELECT nome FROM grupos ORDER BY nome ASC";
 $grupos_result = mysqli_query($con, $grupos_sql);
@@ -64,7 +70,6 @@ if ($grupos_result) {
         $grupos[] = $row;
     }
 }
-
 
 ?>
 <!DOCTYPE html>
@@ -79,13 +84,14 @@ if ($grupos_result) {
             margin: 0; padding: 0;
         }
         .container {
-            max-width: 500px;
+            max-width: 500px !important;
             margin: 80px auto;
             background-color: white;
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
         }
+
         h2 {
             color: #00693e;
             text-align: center;
@@ -137,6 +143,9 @@ if ($grupos_result) {
             text-decoration: underline;
         }
     </style>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
 </head>
 <body>
 
@@ -149,16 +158,25 @@ if ($grupos_result) {
 
     <form action="" method="POST">
         <!-- Tipo de Medida -->
-        <label>Tipo de Medida:</label>
-        <select id="tipo_medida" name="tipo_medida" required>
-            <option value="">-- Selecionar --</option>
-            <option value="km">KM</option>
-            <option value="horas">Horas</option>
-        </select>
+        <label class="form-label d-block">Tipo de Medida:</label>
+        <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="tipo_medida" id="tipo_km" value="km" required>
+            <label class="btn btn-outline-primary" for="tipo_km">KM</label>
+
+            <input type="radio" class="btn-check" name="tipo_medida" id="tipo_horas" value="horas">
+            <label class="btn btn-outline-primary" for="tipo_horas">Horas</label>
+        </div>
 
         <!-- Matrícula -->
-        <label>Matrícula:</label>
-        <input type="text" name="matricula" required maxlength="15" />
+        <div id="matricula_group" style="margin-top: 15px; max-width: 300px; display: flex; align-items: center; gap: 5px; position: relative;">
+    <label for="matricula_input" style="flex-shrink: 0; width: 80px;">Matrícula:</label>
+    <input type="text" name="matricula" id="matricula_input" maxlength="15" class="form-control" style="flex-grow: 1;" />
+    <div id="matricula_toggle" style="display: none; flex-shrink: 0;">
+        <span id="toggle_hide" style="cursor: pointer; color: red; font-size: 20px;">❌</span>
+        <span id="toggle_show" style="cursor: pointer; color: green; font-size: 20px; display: none;">✔️</span>
+    </div>
+</div>
+
 
         <!-- Marca -->
         <label>Marca:</label>
@@ -225,27 +243,75 @@ if ($grupos_result) {
 </div>
 
 <script>
-document.getElementById('tipo_medida').addEventListener('change', function () {
+    const matriculaInput = document.getElementById('matricula_input');
+    const toggleHide = document.getElementById('toggle_hide');
+    const toggleShow = document.getElementById('toggle_show');
+    const toggleArea = document.getElementById('matricula_toggle');
     const kmDiv = document.getElementById('input_km');
     const horasDiv = document.getElementById('input_horas');
+    const kmInput = document.querySelector('input[name="km_atual"]');
+    const horasInput = document.querySelector('input[name="horas_atual"]');
 
-    if (this.value === 'km') {
-        kmDiv.style.display = 'block';
-        horasDiv.style.display = 'none';
-        document.querySelector('input[name="km_atual"]').required = true;
-        document.querySelector('input[name="horas_atual"]').required = false;
-    } else if (this.value === 'horas') {
-        kmDiv.style.display = 'none';
-        horasDiv.style.display = 'block';
-        document.querySelector('input[name="km_atual"]').required = false;
-        document.querySelector('input[name="horas_atual"]').required = true;
-    } else {
-        kmDiv.style.display = 'none';
-        horasDiv.style.display = 'none';
-        document.querySelector('input[name="km_atual"]').required = false;
-        document.querySelector('input[name="horas_atual"]').required = false;
+    // Função para obter o tipo de medida selecionado
+    function getTipoMedida() {
+        const sel = document.querySelector('input[name="tipo_medida"]:checked');
+        return sel ? sel.value : null;
     }
-});
+
+    // Atualizar UI quando muda o tipo de medida
+    document.querySelectorAll('input[name="tipo_medida"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const tipo = getTipoMedida();
+
+            if (tipo === 'km') {
+                kmDiv.style.display = 'block';
+                horasDiv.style.display = 'none';
+                kmInput.required = true;
+                horasInput.required = false;
+
+                toggleArea.style.display = 'none';
+                matriculaInput.required = true;
+                matriculaInput.disabled = false;
+                matriculaInput.style.opacity = 1;
+
+                // Mostrar o toggle como escondido por defeito
+                toggleHide.style.display = 'inline';
+                toggleShow.style.display = 'none';
+            } else if (tipo === 'horas') {
+                kmDiv.style.display = 'none';
+                horasDiv.style.display = 'block';
+                kmInput.required = false;
+                horasInput.required = true;
+
+                toggleArea.style.display = 'inline';
+                matriculaInput.required = false;
+                matriculaInput.disabled = false;
+                matriculaInput.style.opacity = 1;
+
+                toggleHide.style.display = 'inline';
+                toggleShow.style.display = 'none';
+            }
+        });
+    });
+
+    // Clicar no X para esconder matrícula (desativa input)
+    toggleHide.addEventListener('click', () => {
+        matriculaInput.value = '';
+        matriculaInput.disabled = true;
+        matriculaInput.required = false;
+        matriculaInput.style.opacity = 0.5;
+        toggleHide.style.display = 'none';
+        toggleShow.style.display = 'inline';
+    });
+
+    // Clicar no ✔️ para mostrar matrícula (ativa input)
+    toggleShow.addEventListener('click', () => {
+        matriculaInput.disabled = false;
+        matriculaInput.required = false; // continua opcional no modo horas
+        matriculaInput.style.opacity = 1;
+        toggleShow.style.display = 'none';
+        toggleHide.style.display = 'inline';
+    });
 </script>
 
 </body>

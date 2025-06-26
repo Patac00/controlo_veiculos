@@ -36,10 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mensagem = "Erro: não podes inserir mais que 10000 litros de uma vez.";
             $tipo_mensagem = "danger";
         } else {
-            // Verificar total atual para o tipo e localizacao
-            $sql = "SELECT COALESCE(SUM(litros), 0) AS total FROM fornecimentos_bomba WHERE tipo_combustivel = ? AND localizacao = ?";
+            // Verificar total atual para o tipo, localizacao e data (por dia)
+            $sql = "SELECT COALESCE(SUM(litros), 0) AS total FROM fornecimentos_bomba WHERE tipo_combustivel = ? AND localizacao = ? AND data = ?";
             $stmt_check = $con->prepare($sql);
-            $stmt_check->bind_param("ss", $tipo_combustivel, $localizacao);
+            $stmt_check->bind_param("sss", $tipo_combustivel, $localizacao, $data);
             $stmt_check->execute();
             $result = $stmt_check->get_result();
             $row = $result->fetch_assoc();
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $novo_total = $total_atual + $litros;
 
             if ($novo_total > 10000) {
-                $mensagem = "Erro: Limite de 10.000 litros ultrapassado para este tipo de combustível e localização.";
+                $mensagem = "Erro: Limite de 10.000 litros ultrapassado para este tipo de combustível, localização e data.";
                 $tipo_mensagem = "danger";
             } else {
                 $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, localizacao, preco_litro, fatura) VALUES (?, ?, ?, ?, ?, ?)");
@@ -109,16 +109,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
          <div class="mb-3">
           <label for="tipo_combustivel" class="form-label">Tipo de Combustível</label>
-          <select name="tipo_combustivel" class="form-select" required>
-            <option value="">Selecionar...</option>
-            <?php foreach ($tipos as $tipo): ?>
-              <option value="<?= htmlspecialchars($tipo) ?>"> 
-                <?= htmlspecialchars($tipo) ?>
-              </option>
-            <?php endforeach; ?>  
-          </select>
+            <?php $combustivel_predefinido = "Gasóleo"; ?>
+              <select name="tipo_combustivel" class="form-select" required>
+                <option value="">Selecionar...</option>
+                <?php foreach ($tipos as $tipo): ?>
+                  <option value="<?= htmlspecialchars($tipo) ?>" <?= ($tipo === $combustivel_predefinido) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($tipo) ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
         </div>
-
 
           <div class="mb-3">
             <label for="litros" class="form-label">Litros</label>
