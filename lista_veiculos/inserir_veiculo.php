@@ -190,10 +190,10 @@ if ($grupos_result) {
         <label>Tipo de Veículo:</label>
         <select name="tipo_veiculo" required>
             <option value="">-- Selecionar --</option>
-            <option value="Carro">Carro</option>
-            <option value="Camião">Camião</option>
-            <option value="Mota">Mota</option>
-            <option value="Outro">Outro</option>
+            <option value="Ligeiro">Ligeiro</option>
+            <option value="Pesado">Pesado</option>
+            <option value="Maquina">Máquina</option>
+            <option value="Outro">Outros</option>
         </select>
 
         <!-- Empresa -->
@@ -235,10 +235,12 @@ if ($grupos_result) {
             <option value="Manutenção">Manutenção</option>
         </select>
 
-        <button type="submit">Guardar Veículo</button>
+        <button type="submit" style="margin-top: 20px;">Guardar Veículo</button>
+
     </form>
 
     <a class="back-btn" href="ver_lista_veiculos.php">← Ver Lista de Veículos</a>
+    
     <a class="back-btn" href="../html/index.php">← Voltar ao Início</a>
 </div>
 
