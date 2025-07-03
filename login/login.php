@@ -21,6 +21,8 @@ if (isset($_POST['submit'])) {
         if (password_verify($password, $row['password'])) {
             $_SESSION['nome'] = $row['nome'];
             $_SESSION['id_utilizador'] = $row['id_utilizador'];
+            $_SESSION['cargo'] = $row['cargo'];
+
             header("Location: ../html/index.php");
             exit();
         } else {
