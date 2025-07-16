@@ -32,17 +32,11 @@ $dados = [];
 $inicio = ($ano && $mes) ? "$ano-$mes-01" : null;
 $fim = $inicio ? date("Y-m-t", strtotime($inicio)) : null;
 
-// Montar condições da query, só se filtros preenchidos
+// Montar condições da query
 $where = [];
-if ($inicio && $fim) {
-    $where[] = "b.data BETWEEN '$inicio' AND '$fim'";
-}
-if ($grupo) {
-    $where[] = "v.Grupo = '$grupo'";
-}
-if ($local) {
-    $where[] = "p.local = '$local'";
-}
+if ($inicio && $fim) $where[] = "b.data BETWEEN '$inicio' AND '$fim'";
+if ($grupo) $where[] = "v.Grupo = '$grupo'";
+if ($local) $where[] = "p.local = '$local'";
 $where_sql = $where ? "WHERE " . implode(" AND ", $where) : "";
 
 // Query bomba
@@ -54,7 +48,7 @@ $sql_bomba = "
     LEFT JOIN veiculos v ON b.id_veiculo = v.id_veiculo
     LEFT JOIN lista_postos p ON b.id_posto = p.id_posto
     $where_sql
-    ORDER BY v.Grupo, v.matricula, b.odometro ASC
+    ORDER BY v.matricula, b.odometro ASC
 ";
 
 $res = mysqli_query($con, $sql_bomba);
@@ -62,18 +56,18 @@ while ($row = mysqli_fetch_assoc($res)) {
     $dados[] = $row;
 }
 
-// Calcular totais por grupo e total geral
-$totais_grupos = [];
+// Totais por matrícula
+$totais_veiculos = [];
 $total_geral = 0;
 
 foreach ($dados as $linha) {
-    $g = $linha['Grupo'];
+    $mat = $linha['matricula'];
     $valor = (float)$linha['valor_total'];
 
-    if (!isset($totais_grupos[$g])) {
-        $totais_grupos[$g] = 0;
+    if (!isset($totais_veiculos[$mat])) {
+        $totais_veiculos[$mat] = 0;
     }
-    $totais_grupos[$g] += $valor;
+    $totais_veiculos[$mat] += $valor;
     $total_geral += $valor;
 }
 ?>
@@ -149,7 +143,7 @@ foreach ($dados as $linha) {
     </style>
 </head>
 <body>
-<h2>Relatório de Abastecimentos</h2>
+<h2>Relatório de Abastecimentos por Veículo</h2>
 
 <div class="form-wrapper">
 <form method="get">
@@ -193,7 +187,7 @@ foreach ($dados as $linha) {
 
 <div class="form-wrapper">
 <form method="get">
-    <!-- Manter os filtros preenchidos para manter estado -->
+    <!-- Manter os filtros preenchidos -->
     <input type="hidden" name="ano" value="<?= htmlspecialchars($ano) ?>">
     <input type="hidden" name="mes" value="<?= htmlspecialchars($mes) ?>">
     <input type="hidden" name="local" value="<?= htmlspecialchars($local) ?>">
@@ -203,7 +197,7 @@ foreach ($dados as $linha) {
 </form>
 </div>
 
-<!-- Botão gerar PDF -->
+<!-- Botão PDF -->
 <form method="get" action="gera_pdf.php" target="_blank" class="btn-pdf">
     <input type="hidden" name="ano" value="<?= htmlspecialchars($ano) ?>">
     <input type="hidden" name="mes" value="<?= htmlspecialchars($mes) ?>">
@@ -228,42 +222,40 @@ foreach ($dados as $linha) {
     </thead>
     <tbody>
     <?php
-    $grupo_atual = '';
+    $matricula_atual = '';
     foreach ($dados as $d):
-        if (empty($d['matricula']) || empty($d['Grupo'])) {
-            continue;
-        }
-        if ($d['Grupo'] !== $grupo_atual):
-            if ($grupo_atual != ''): ?>
+        if (empty($d['matricula'])) continue;
+
+        if ($d['matricula'] !== $matricula_atual):
+            if ($matricula_atual != ''): ?>
             <tr class="total-row">
-                <td colspan="6" style="text-align:right;">Total <?= htmlspecialchars($grupo_atual) ?>:</td>
-                <td colspan="2"><?= number_format($totais_grupos[$grupo_atual], 2, ',', '.') ?> €</td>
+                <td colspan="6" style="text-align:right;">Total <?= htmlspecialchars($matricula_atual) ?>:</td>
+                <td colspan="2"><?= number_format($totais_veiculos[$matricula_atual], 2, ',', '.') ?> €</td>
             </tr>
             <?php endif;
-            $grupo_atual = $d['Grupo'];
+            $matricula_atual = $d['matricula'];
             ?>
             <tr class="group-header">
-                <td colspan="8">Grupo: <?= htmlspecialchars($grupo_atual ?? '-') ?></td>
+                <td colspan="8">Veículo: <?= htmlspecialchars($matricula_atual ?? '-') ?></td>
             </tr>
     <?php endif; ?>
 
         <tr>
-        <td><?= htmlspecialchars($d['matricula'] ?? '-') ?></td>
-        <td><?= htmlspecialchars($d['km'] ?? '-') ?></td>
-        <td><?= htmlspecialchars($d['funcionario'] ?? '-') ?></td>
-        <td><?= htmlspecialchars($d['local'] ?? '-') ?></td>
-        <td><?= htmlspecialchars($d['requisicao'] ?? '-') ?></td>
-        <td><?= htmlspecialchars($d['litros'] ?? '-') ?></td>
-        <td><?= (isset($d['valor_total']) && $d['valor_total'] > 0) ? number_format($d['valor_total'], 2, ',', '.') : '-' ?></td>
-        <td><?= (isset($d['valor_sem_iva']) && $d['valor_sem_iva'] > 0) ? number_format($d['valor_sem_iva'], 2, ',', '.') : '-' ?></td>
-    </tr>
-
+            <td><?= htmlspecialchars($d['matricula'] ?? '-') ?></td>
+            <td><?= htmlspecialchars($d['km'] ?? '-') ?></td>
+            <td><?= htmlspecialchars($d['funcionario'] ?? '-') ?></td>
+            <td><?= htmlspecialchars($d['local'] ?? '-') ?></td>
+            <td><?= htmlspecialchars($d['requisicao'] ?? '-') ?></td>
+            <td><?= htmlspecialchars($d['litros'] ?? '-') ?></td>
+            <td><?= (isset($d['valor_total']) && $d['valor_total'] > 0) ? number_format($d['valor_total'], 2, ',', '.') : '-' ?></td>
+            <td><?= (isset($d['valor_sem_iva']) && $d['valor_sem_iva'] > 0) ? number_format($d['valor_sem_iva'], 2, ',', '.') : '-' ?></td>
+        </tr>
     <?php endforeach; ?>
 
-        <!-- Total último grupo -->
+        <!-- Total último veículo -->
         <tr class="total-row">
-            <td colspan="6" style="text-align:right;">Total <?= htmlspecialchars($grupo_atual) ?>:</td>
-            <td colspan="2"><?= number_format($totais_grupos[$grupo_atual], 2, ',', '.') ?> €</td>
+            <td colspan="6" style="text-align:right;">Total <?= htmlspecialchars($matricula_atual) ?>:</td>
+            <td colspan="2"><?= number_format($totais_veiculos[$matricula_atual], 2, ',', '.') ?> €</td>
         </tr>
         <!-- Total geral -->
         <tr class="total-geral">
