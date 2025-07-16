@@ -52,13 +52,13 @@ while ($v = $res->fetch_assoc()) {
     $m3 = calcularMedia($con, $id, $tipo, date('Y-m-d', strtotime('-3 months')));
     $m12 = calcularMedia($con, $id, $tipo, date('Y-m-d', strtotime('-12 months')));
 
-    $l100 = $tipo !== 'maquina' ? round($mG, 2) : 0;
-    $l100_3 = $tipo !== 'maquina' ? round($m3, 2) : 0;
-    $l100_12 = $tipo !== 'maquina' ? round($m12, 2) : 0;
+    $l100     = $tipo !== 'maquina' && $mG  !== null ? round($mG, 2)  : 0;
+    $l100_3   = $tipo !== 'maquina' && $m3  !== null ? round($m3, 2)  : 0;
+    $l100_12  = $tipo !== 'maquina' && $m12 !== null ? round($m12, 2) : 0;
 
-    $lh = $tipo === 'maquina' ? round($mG, 2) : 0;
-    $lh_3 = $tipo === 'maquina' ? round($m3, 2) : 0;
-    $lh_12 = $tipo === 'maquina' ? round($m12, 2) : 0;
+    $lh       = $tipo === 'maquina' && $mG  !== null ? round($mG, 2)  : 0;
+    $lh_3     = $tipo === 'maquina' && $m3  !== null ? round($m3, 2)  : 0;
+    $lh_12    = $tipo === 'maquina' && $m12 !== null ? round($m12, 2) : 0;
 
     $stmt = $con->prepare("
         INSERT INTO medias_abastecimento (

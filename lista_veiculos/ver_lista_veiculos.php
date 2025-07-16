@@ -7,7 +7,6 @@ if (!isset($_SESSION['id_utilizador'])) {
 
 include("../php/config.php");
 include_once("../funcoes/funcoes_medias.php");
-include("../abastecimentos/atualizar_medias.php");
 $con->set_charset("utf8mb4");
 
 
@@ -21,7 +20,7 @@ $empresas = [];
 $resE = mysqli_query($con, "SELECT id_empresa, nome FROM empresas ORDER BY nome");
 while ($e = mysqli_fetch_assoc($resE)) $empresas[] = $e;
 
-// Recolhe filtros do GET
+// Recolhe filtros do GET  
 $filtros = [];
 if (!empty($_GET['matricula'])) {
     $m = mysqli_real_escape_string($con, $_GET['matricula']);
