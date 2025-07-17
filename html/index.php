@@ -6,70 +6,141 @@ if (!isset($_SESSION['id_utilizador'])) {
 }
 include("../php/config.php");
 
+$id = $_SESSION['id_utilizador']; 
 
-// Contar veículos ativos
-$sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo'";
+// Buscar empresa(s) do utilizador e unidades
+$sql_user = "SELECT u.empresa_id, e.unidades 
+             FROM utilizadores u 
+             LEFT JOIN empresas e ON u.empresa_id = e.id_empresa 
+             WHERE u.id_utilizador = $id 
+             LIMIT 1";
+$res_user = mysqli_query($con, $sql_user);
+
+$empresa_id = null;
+$unidades = [];
+
+if ($res_user && mysqli_num_rows($res_user) > 0) {
+    $user_data = mysqli_fetch_assoc($res_user);
+    $empresa_id = $user_data['empresa_id'] ?? null;
+
+    $unidades_str = $user_data['unidades'] ?? null;
+    if ($unidades_str) {
+        $unidades = array_map('trim', explode(',', $unidades_str));
+    }
+} 
+
+// Preço Litro Gasóleo com filtro da empresa do utilizador (baseado nas unidades)
+if (!empty($unidades)) {
+    $unidades_escaped = array_map(fn($u) => "'" . mysqli_real_escape_string($con, $u) . "'", $unidades);
+    $unidades_sql = implode(',', $unidades_escaped);
+
+    $sql = "SELECT preco_litro 
+            FROM fornecimentos_bomba 
+            WHERE unidade IN ($unidades_sql) AND tipo_combustivel = 'Gasóleo' 
+            ORDER BY data DESC 
+            LIMIT 1";
+} else {
+    $sql = "SELECT preco_litro FROM fornecimentos_bomba ORDER BY data DESC LIMIT 1";
+}
+
 $result = mysqli_query($con, $sql);
-$row = mysqli_fetch_assoc($result);
+$preco = 'Erro -_-';
+if ($result && $row = mysqli_fetch_assoc($result)) {
+    $preco = number_format($row['preco_litro'], 2, ',', ' ') . ' €';
+}
+
+// Contar veículos ativos (filtrar por empresa_atual_id)
+if ($empresa_id !== null) {
+    $sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo' AND empresa_atual_id = $empresa_id";
+} else {
+    $sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo'";
+}
+$result = mysqli_query($con, $sql);
+$row = $result ? mysqli_fetch_assoc($result) : null;
 $total_ativos = $row['total_ativos'] ?? 0;
 
-// Contar veículos em manutenção
-$sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'Manutenção'";
+// Contar veículos em manutenção (filtrar por empresa_atual_id)
+if ($empresa_id !== null) {
+    $sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'Manutenção' AND empresa_atual_id = $empresa_id";
+} else {
+    $sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'Manutenção'";
+}
 $result = mysqli_query($con, $sql);
-$row = mysqli_fetch_assoc($result);
+$row = $result ? mysqli_fetch_assoc($result) : null;
 $veiculos_manutencao = $row['total_manutencao'] ?? 0;
 
-// Buscar nível de combustível da Redinha
-$query = "SELECT litros FROM stock_combustivel 
-          WHERE localizacao = 'Redinha' 
-          LIMIT 1";
-$res = mysqli_query($con, $query);
-$row = mysqli_fetch_assoc($res);
-$nivel_combustivel = $row['litros'] ?? 0;
+// Buscar níveis de combustível para cada unidade
+$nivel_combustivel_unidades = [];
 
-// Capacidade total da Redinha
-$capacidade_total = 10000; // ajusta conforme necessário
-$percentagem = ($nivel_combustivel / $capacidade_total) * 100;
-
-// Definir cor
-if ($percentagem > 50) {
-    $cor = "#00BFFF";  // Azul
-} elseif ($percentagem > 35) {
-    $cor = "#FFFF00";  // Amarelo
-} else {
-    $cor = "#FF0000";  // Vermelho
+if (!empty($unidades)) {
+    $stmt = $con->prepare("SELECT litros FROM stock_combustivel WHERE localizacao = ? LIMIT 1");
+    foreach ($unidades as $unidade) {
+        $stmt->bind_param("s", $unidade);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res ? $res->fetch_assoc() : null;
+        $nivel_combustivel_unidades[$unidade] = $row['litros'] ?? 0;
+    }
+    $stmt->close();
 }
-// Atualizar mês de abastecimento dinamico
+
+// Capacidade total fixa (podes alterar para buscar de base de dados se existir)
+$capacidade_total = 10000;
+
+// Total abastecimentos do mês atual (sem filtro de empresa, podes adaptar)
 $sql = "SELECT COUNT(*) AS total 
         FROM abastecimentos 
         WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) 
         AND YEAR(data_abastecimento) = YEAR(CURDATE())";
 $result = mysqli_query($con, $sql);
-$row = mysqli_fetch_assoc($result);
-$total_mes_atual = $row['total'];
-
-// Query para abastecimentos do mês atual
-$sql = "SELECT COUNT(*) AS total 
-        FROM abastecimentos 
-        WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) 
-        AND YEAR(data_abastecimento) = YEAR(CURDATE())";
-$result = mysqli_query($con, $sql);
-$row = mysqli_fetch_assoc($result);
-$total_mes = $row['total'];
-
-
+$row = $result ? mysqli_fetch_assoc($result) : null;
+$total_mes = $row['total'] ?? 0;
 
 // Nome do mês em português
-setlocale(LC_TIME, 'pt_PT.UTF-8'); // tenta garantir o idioma
-$formatter = new \IntlDateFormatter('pt_PT', \IntlDateFormatter::LONG, \IntlDateFormatter::NONE);
+setlocale(LC_TIME, 'pt_PT.UTF-8');
+$formatter = new IntlDateFormatter('pt_PT', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
 $formatter->setPattern('MMMM');
-$mes_atual = $formatter->format(new \DateTime());
+$mes_atual = $formatter->format(new DateTime());
+
+$dados_unidades_json = json_encode($nivel_combustivel_unidades);
+$capacidade_total_js = $capacidade_total;
+
+$unidade_selecionada = $_GET['unidade'] ?? null;
+$empresa_id = null;
+$empresa_nome = '';
+$unidade_nome = '';
+
+// Exemplo: buscar dados da unidade selecionada na tabela "lista_postos"
+if ($unidade_selecionada) {
+    $stmt = $con->prepare("SELECT unidade, empresa_id FROM lista_postos WHERE id = ?");
+    $stmt->bind_param("i", $unidade_selecionada);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res && $row = $res->fetch_assoc()) {
+        $unidade_nome = $row['unidade'];       // Nome ou código da unidade
+        $empresa_id = $row['empresa_id'];      // Id da empresa associada
+    }
+    $stmt->close();
+}
+$nome_bomba = 'Sem bomba associada';
+
+if (!empty($unidades)) {
+    // Vamos buscar o primeiro nome da unidade do array $unidades
+    $unidade_principal = $unidades[0];
+
+    $stmt = $con->prepare("SELECT nome FROM lista_postos WHERE unidade = ? LIMIT 1");
+    $stmt->bind_param("s", $unidade_principal);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res && $row = $res->fetch_assoc()) {
+        $nome_bomba = $row['nome'];
+    }
+    $stmt->close();
+}
 
 
 
 ?>
-
-
 
 
 <!DOCTYPE html>
@@ -91,6 +162,8 @@ $mes_atual = $formatter->format(new \DateTime());
     <title> Dashboard | Controlo Veiculos</title>
 
     <meta name="description" content="" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <!-- Ambipombal -->
     <link rel="icon" type="image/x-icon" href="../assets/img/ambipombal/ambipombal.ico" />
@@ -120,6 +193,14 @@ $mes_atual = $formatter->format(new \DateTime());
 
     <!-- Helpers -->
     <script src="../assets/vendor/js/helpers.js"></script>
+
+    <script>
+  const dadosUnidades = <?php echo json_encode($nivel_combustivel_unidades); ?>;
+  const nomesUnidades = <?php echo json_encode(array_keys($nivel_combustivel_unidades)); ?>;
+  const capacidadeTotal = <?php echo (int)$capacidade_total; ?>;
+</script>
+
+
 
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
@@ -432,20 +513,32 @@ $mes_atual = $formatter->format(new \DateTime());
 
           <!-- Card Combustível Redinha -->
           <div class="col-md-4 mb-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="card-title d-flex align-items-start justify-content-between">
-                  <h2>Redinha</h2>
-                  <a class="dropdown-item" href="../abastecimentos/fornecer_comb.php">+ detalhes</a>
+            <div class="card h-100">
+              <div class="card-body d-flex flex-column">
+                <a id="btnFornecer" href="../abastecimentos/fornecer_comb.php" class="btn btn-primary btn-sm mb-3 align-self-start">
+                  Fornecer Combustível
+                </a>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
+                  <h2 id="unidadeNome"><?= htmlspecialchars($nome_bomba) ?></h2>
+
+                  
                 </div>
-                <strong>Nível de Combustível:</strong> <?php echo number_format($nivel_combustivel, 2); ?> litros<br />
-                <div class="progress-bar" style="background-color: #eee;">
-                  <div class="progress" style="width: <?php echo $percentagem; ?>%; background-color: <?php echo $cor; ?>;"></div>
+
+                <div>
+                  <strong>Nível de Combustível:</strong> <span id="nivelLitros">0</span> litros
                 </div>
-                <small><?php echo number_format($percentagem, 2); ?>% da capacidade total</small>
+
+                <div class="progress my-2" style="height: 20px;">
+                  <div id="progressBar" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <small><span id="percentagemLitros">0</span>% da capacidade total</small>
               </div>
             </div>
           </div>
+
 
           <!-- Botões de Relatórios (à direita do card) -->
           <div class="col-md-4 mb-4">
@@ -461,7 +554,22 @@ $mes_atual = $formatter->format(new \DateTime());
               </div>
             </div>
           </div>
+
+          <!-- Ver preço gasóleo ao Litro -->
+          <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow rounded-4 border-0">
+              <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
+                <div class="mb-3 text-primary">
+                  <i class="fas fa-gas-pump fa-2x"></i>
+                </div>
+                <h6 class="text-muted mb-1">Preço Litro Gasóleo</h6>
+                <h3 class="fw-bold text-dark"><?php echo $preco; ?></h3>
+              </div>
+            </div>
+          </div>
+
         </div>
+
 
 
       <!-- Overlay -->
@@ -490,5 +598,20 @@ $mes_atual = $formatter->format(new \DateTime());
 
     <!-- Place this tag in your head or just before your close body tag. -->
     <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <script>
+      const dadosUnidades = <?= $dados_unidades_json ?>;
+      const capacidadeTotal = <?= $capacidade_total_js ?>;
+
+      const nomesUnidades = Object.keys(dadosUnidades);
+      let indiceAtual = 0;
+
+      const unidadeNome = document.getElementById('unidadeNome');
+      const nivelLitros = document.getElementById('nivelLitros');
+      const percentagemLitros = document.getElementById('percentagemLitros');
+      const progressBar = document.getElementById('progressBar');
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+
+    </script>
   </body>
 </html>

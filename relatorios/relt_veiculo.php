@@ -110,7 +110,6 @@ usort($dados, function($a, $b) {
     return strcmp($matA, $matB);
 });
 
-
 // Totais por matrícula
 $totais_veiculos = [];
 $total_lts = 0;
@@ -131,7 +130,48 @@ foreach ($dados as $linha) {
     $total_montante += (float)$linha['valor_total'];
     $total_montante_siva += (float)$linha['valor_sem_iva'];
 }
+
+// Exportar CSV
+if (isset($_GET['export_csv'])) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=relatorio_veiculos.csv');
+
+    $output = fopen('php://output', 'w');
+
+    // Cabeçalho
+    fputcsv($output, [
+        'Empresa', 'Tipo', 'Matrícula', 'Descrição', 'KM',
+        'Funcionário', 'Local', 'Requisição', 'LTS',
+        'Montante (€)', 'Montante (€) s/iva'
+    ], ';');
+
+    foreach ($dados as $d) {
+        $litros = number_format($d['litros'], 2, ',', '.');
+        $valor_total = ($d['valor_total'] > 0) ? number_format($d['valor_total'], 2, ',', '.') : '-';
+        $valor_siva = ($d['valor_sem_iva'] > 0) ? number_format($d['valor_sem_iva'], 2, ',', '.') : '-';
+
+        $linha = [
+            $d['empresa'] ?? '-',
+            $d['Tipo'] ?? '-',
+            $d['matricula'] ?? '-',
+            $d['Descricao'] ?? '-',
+            $d['km'] ?? '-',
+            $d['funcionario'] ?? '-',
+            $d['local'] ?? '-',
+            trim($d['requisicao']) !== '' ? $d['requisicao'] : '(em branco)',
+            $litros,
+            $valor_total,
+            $valor_siva
+        ];
+
+        fputcsv($output, $linha, ';');
+    }
+
+    fclose($output);
+    exit();
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="pt">
@@ -197,13 +237,13 @@ foreach ($dados as $linha) {
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            margin-bottom: 10px; /* Adicionado para todos os botões */
+            margin-bottom: 10px; /* Todos os botões */
         }
         button:hover {
             background-color: #424446ff;
         }
         .botoes-wrapper {
-            overflow: hidden; /* para conter floats */
+            overflow: hidden; /* conter floats */
             margin-bottom: 10px;
         }
         .btn-voltar {
@@ -214,9 +254,12 @@ foreach ($dados as $linha) {
         .btn-pdf {
             float: right;
             margin-bottom: 0px;
+            margin-left: 10px;
         }
-
-
+        .btn-csv {
+            float: right;
+            margin-bottom: 0px;
+        }
     </style>
 </head>
 <body>
@@ -262,7 +305,7 @@ foreach ($dados as $linha) {
 </form>
 </div>
 
-<!--Botão Voltar & PDF-->
+<!-- Botões -->
 <div class="botoes-wrapper">
     <button class="btn-voltar" onclick="location.href='../html/index.php'">Voltar</button>
 
@@ -272,6 +315,15 @@ foreach ($dados as $linha) {
         <input type="hidden" name="local" value="<?= htmlspecialchars($local) ?>">
         <input type="hidden" name="grupo" value="<?= htmlspecialchars($grupo) ?>">
         <button type="submit">Gerar PDF</button>
+    </form>
+
+    <form method="get" class="btn-csv" style="float:right; margin-left:10px;">
+        <input type="hidden" name="ano" value="<?= htmlspecialchars($ano) ?>">
+        <input type="hidden" name="mes" value="<?= htmlspecialchars($mes) ?>">
+        <input type="hidden" name="local" value="<?= htmlspecialchars($local) ?>">
+        <input type="hidden" name="grupo" value="<?= htmlspecialchars($grupo) ?>">
+        <input type="hidden" name="export_csv" value="1">
+        <button type="submit" style="background-color:#28a745;">Exportar CSV</button>
     </form>
 </div>
 

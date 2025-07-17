@@ -21,8 +21,8 @@ if ($user && $user['empresa_id']) {
     $empresa_nome = $empresa ? preg_replace('/\s+/', '', strtolower($empresa['nome'])) : '';
 }
 
-// Buscar empresas para select
-$sql_empresas = "SELECT id_empresa, nome FROM empresas ORDER BY nome";
+// Buscar empresas para select — garante que traz a coluna unidades!
+$sql_empresas = "SELECT id_empresa, nome, unidades FROM empresas ORDER BY nome";
 $result_empresas = mysqli_query($con, $sql_empresas);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -112,14 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 
-<!-- Aqui começa o HTML com o teu layout -->
-
 <!DOCTYPE html>
 <html lang="pt" class="light-style layout-menu-fixed" dir="ltr" data-theme="theme-default" data-assets-path="../assets/" data-template="vertical-menu-template-free">
 <head>
     <meta charset="utf-8" />
     <title>Editar Perfil | Controlo Veículos</title>
-    <!-- Inclui os teus CSS/JS habituais -->
     <link rel="stylesheet" href="../assets/vendor/css/core.css" />
     <link rel="stylesheet" href="../assets/vendor/css/theme-default.css" />
     <link rel="stylesheet" href="../assets/css/demo.css" />
@@ -127,36 +124,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="layout-wrapper layout-content-navbar">
     <div class="layout-container">
-        <!-- Podes copiar o teu sidebar/menu aqui -->
 
         <div class="layout-page">
-            <!-- Navbar copiado do teu index -->
 
             <nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
                 <!-- Conteúdo navbar... -->
             </nav>
 
-            <!-- Conteúdo principal -->
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
                     <h4 class="fw-bold py-3 mb-4">Editar Perfil</h4>
-    
-                         <!-- FOTO AQUI DENTRO -->
-                    <div class="mb-3">
-                        <label class="form-label">Foto de Perfil</label>
-                        <input type="file" name="foto_perfil" accept="image/*" class="form-control" />
-                        <?php if (!empty($user['foto_perfil'])): ?>
-                            <img src="../foto_perfil/<?= htmlspecialchars($user['foto_perfil']) ?>" alt="Foto de Perfil" style="max-width: 100px; margin-top: 10px;">
-                        <?php endif; ?>
-                    </div>
-
+                    
                     <?php if(isset($msg)): ?>
-                        <div class="alert alert-success"><?= $msg ?></div>
+                        <div class="alert alert-success"><?= htmlspecialchars($msg) ?></div>
                     <?php elseif(isset($erro)): ?>
-                        <div class="alert alert-danger"><?= $erro ?></div>
+                        <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
                     <?php endif; ?>
 
-                    <form method="post" action="">
+                    <form method="post" action="" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">Foto de Perfil</label>
+                            <input type="file" name="foto_perfil" accept="image/*" class="form-control" />
+                            <?php if (!empty($user['foto_perfil'])): ?>
+                                <img src="../foto_perfil/<?= htmlspecialchars($user['foto_perfil']) ?>" alt="Foto de Perfil" style="max-width: 100px; margin-top: 10px;">
+                            <?php endif; ?>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label">Nome</label>
                             <input type="text" name="nome" class="form-control" value="<?= htmlspecialchars($user['nome']) ?>" required />
@@ -171,9 +164,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label class="form-label">Empresa</label>
                             <select name="empresa_id" class="form-select" required>
                                 <option value="">-- Selecionar --</option>
-                                <?php while($empresa = mysqli_fetch_assoc($result_empresas)): ?>
+                                <?php 
+                                // Rewind para garantir que o while funciona bem mesmo após vários loops
+                                mysqli_data_seek($result_empresas, 0);
+                                while($empresa = mysqli_fetch_assoc($result_empresas)): ?>
                                     <option value="<?= $empresa['id_empresa'] ?>" <?= ($empresa['id_empresa'] == $user['empresa_id']) ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($empresa['nome']) ?>
+                                        <?php if (!empty($empresa['unidades'])): ?>
+                                            - Unidade <?= htmlspecialchars($empresa['unidades']) ?>
+                                        <?php endif; ?>
                                     </option>
                                 <?php endwhile; ?>
                             </select>
@@ -199,7 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<!-- Scripts do teu template -->
 <script src="../assets/vendor/libs/jquery/jquery.js"></script>
 <script src="../assets/vendor/js/bootstrap.js"></script>
 <script src="../assets/js/main.js"></script>

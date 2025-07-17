@@ -10,17 +10,41 @@ include("../php/config.php");
 $mensagem = '';
 $tipo_mensagem = '';
 
-// Buscar os tipos de combustível
+$id = $_SESSION['id_utilizador'];
 $tipos = [];
+$postos = [];
+$empresa_id = null;
+$unidade_str = null;
+
+// Buscar empresa e unidades do utilizador
+$sql_user = "SELECT u.empresa_id, e.unidades FROM utilizadores u
+             LEFT JOIN empresas e ON u.empresa_id = e.id_empresa
+             WHERE u.id_utilizador = $id LIMIT 1";
+$res_user = mysqli_query($con, $sql_user);
+if ($res_user && mysqli_num_rows($res_user) > 0) {
+    $user_data = mysqli_fetch_assoc($res_user);
+    $empresa_id = (int)$user_data['empresa_id'];
+    $unidade_str = $user_data['unidades'];
+}
+
+// Buscar os tipos de combustível
 $res = mysqli_query($con, "SELECT DISTINCT nome FROM tipo_combustivel");
 while ($row = mysqli_fetch_assoc($res)) {
     $tipos[] = $row['nome'];
 }
-// Buscar a lista de postos
+
+// Buscar postos da(s) unidade(s)
 $postos = [];
-$res = mysqli_query($con, "SELECT DISTINCT nome FROM lista_postos");
-while ($row = mysqli_fetch_assoc($res)) {
-    $postos[] = $row['nome'];
+if ($unidade_str) {
+    $unidades_array = array_map('trim', explode(',', $unidade_str));
+    $unidades_escaped = array_map(fn($u) => "'" . mysqli_real_escape_string($con, $u) . "'", $unidades_array);
+    $unidades_sql = implode(',', $unidades_escaped);
+
+    $sql_postos = "SELECT DISTINCT nome FROM lista_postos WHERE unidade IN ($unidades_sql)";
+    $res_postos = mysqli_query($con, $sql_postos);
+    while ($row = mysqli_fetch_assoc($res_postos)) {
+        $postos[] = $row['nome'];
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -30,13 +54,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $localizacao = $_POST['localizacao'] ?? null;
     $fatura = $_POST['fatura'] ?? null;
     $litros = floatval($_POST['litros']);
+    $unidade_escolhida = null;
 
-    if ($data && $tipo_combustivel && $litros && $preco_litro && $localizacao && $fatura) {
+    // Buscar unidade correspondente à localização escolhida
+    if ($unidade_str) {
+        $sql_unidade = "SELECT unidade FROM lista_postos WHERE nome = ?";
+        $stmt_unidade = $con->prepare($sql_unidade);
+        $stmt_unidade->bind_param("s", $localizacao);
+        $stmt_unidade->execute();
+        $res_unidade = $stmt_unidade->get_result();
+        if ($res_unidade && $row_unidade = $res_unidade->fetch_assoc()) {
+            $unidade_escolhida = (int)$row_unidade['unidade'];
+        }
+        $stmt_unidade->close();
+    }
+
+    if ($data && $tipo_combustivel && $litros && $preco_litro && $localizacao && $fatura && $empresa_id && $unidade_escolhida !== null) {
         if ($litros > 10000) {
             $mensagem = "Erro: não podes inserir mais que 10000 litros de uma vez.";
             $tipo_mensagem = "danger";
         } else {
-            // Verificar total atual para o tipo, localizacao e data (por dia)
             $sql = "SELECT COALESCE(SUM(litros), 0) AS total FROM fornecimentos_bomba WHERE tipo_combustivel = ? AND localizacao = ? AND data = ?";
             $stmt_check = $con->prepare($sql);
             $stmt_check->bind_param("sss", $tipo_combustivel, $localizacao, $data);
@@ -51,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mensagem = "Erro: Limite de 10.000 litros ultrapassado para este tipo de combustível, localização e data.";
                 $tipo_mensagem = "danger";
             } else {
-                $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, localizacao, preco_litro, fatura) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("ssdssd", $data, $tipo_combustivel, $litros, $localizacao, $preco_litro, $fatura);
+                $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, localizacao, preco_litro, fatura, empresa_id, unidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssdssdii", $data, $tipo_combustivel, $litros, $localizacao, $preco_litro, $fatura, $empresa_id, $unidade_escolhida);
 
                 if ($stmt->execute()) {
                     $mensagem = "✅ Fornecimento registado com sucesso!";
@@ -68,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_check->close();
         }
     } else {
-        $mensagem = "Por favor, preenche todos os campos.";
+        $mensagem = "Por favor, preenche todos os campos corretamente.";
         $tipo_mensagem = "warning";
     }
 
@@ -76,15 +113,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fornecimento à Bomba</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
 </head>
 <body class="bg-light">
   <div class="container mt-5">
@@ -101,33 +137,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         <?php endif; ?>
 
+          <!-- Mostrar a empresa -->
+        <div class="mb-3">
+          <label class="form-label">Empresa</label>
+          <input type="text" class="form-control" value="<?= htmlspecialchars($empresa_nome) ?>" readonly>
+          <input type="hidden" name="empresa_id" value="<?= htmlspecialchars($empresa_id) ?>">
+        </div>
+
+        <!-- Mostrar a unidade -->
+        <div class="mb-3">
+          <label class="form-label">Unidade</label>
+          <input type="text" class="form-control" value="<?= htmlspecialchars($unidade_nome) ?>" readonly>
+          <input type="hidden" name="unidade" value="<?= htmlspecialchars($unidade_selecionada) ?>">
+        </div>
+
         <form action="" method="post">
           <div class="mb-3">
             <label for="data" class="form-label">Data</label>
-            <input type="date" name="data" class="form-control" required>
+            <input type="date" name="data" class="form-control" required />
           </div>
 
-         <div class="mb-3">
-          <label for="tipo_combustivel" class="form-label">Tipo de Combustível</label>
-            <?php $combustivel_predefinido = "Gasóleo"; ?>
-              <select name="tipo_combustivel" class="form-select" required>
-                <option value="">Selecionar...</option>
-                <?php foreach ($tipos as $tipo): ?>
-                  <option value="<?= htmlspecialchars($tipo) ?>" <?= ($tipo === $combustivel_predefinido) ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($tipo) ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-        </div>
+          <div class="mb-3">
+            <label for="tipo_combustivel" class="form-label">Tipo de Combustível</label>
+            <select name="tipo_combustivel" class="form-select" required>
+              <option value="">Selecionar...</option>
+              <?php foreach ($tipos as $tipo): ?>
+                <option value="<?= htmlspecialchars($tipo) ?>"><?= htmlspecialchars($tipo) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
 
           <div class="mb-3">
             <label for="litros" class="form-label">Litros</label>
-            <input type="number" step="0.01" name="litros" max="10000" class="form-control" required>
+            <input type="number" step="0.01" name="litros" max="10000" class="form-control" required />
           </div>
 
           <div class="mb-3">
             <label for="preco_litro" class="form-label">Preço por Litro (€)</label>
-            <input type="number" step="0.01" name="preco_litro" class="form-control" required>
+            <input type="number" step="0.01" name="preco_litro" class="form-control" required />
           </div>
 
           <div class="mb-3">
@@ -150,9 +197,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div class="d-flex justify-content-between">
             <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Registar</button>
-            <button type="button" class="btn btn-secondary" onclick="window.location.href='../html/index.php'"><i class="bi bi-arrow-left"></i> Voltar</button>
+            <a href="../html/index.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
           </div>
         </form>
+
       </div>
     </div>
   </div>
