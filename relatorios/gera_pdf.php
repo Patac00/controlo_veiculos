@@ -50,6 +50,7 @@ $sql_abast = "
     $where_sql_abast
 ";
 
+
 $sql_bomba = "
     SELECT 
         e.nome AS empresa,
@@ -57,7 +58,7 @@ $sql_bomba = "
         v.matricula,
         v.Descricao,
         b.odometro AS km,
-        b.motorista AS funcionario,
+        m.nome AS funcionario,
         p.local,
         '' AS requisicao,
         b.quantidade AS litros,
@@ -68,8 +69,11 @@ $sql_bomba = "
     JOIN veiculos v ON b.id_veiculo = v.id_veiculo
     JOIN empresas e ON v.empresa_atual_id = e.id_empresa
     JOIN lista_postos p ON b.id_posto = p.id_posto
+    LEFT JOIN motoristas m ON b.motorista = m.codigo_bomba
     $where_sql_bomba
 ";
+
+
 
 $sql = "$sql_abast UNION ALL $sql_bomba ORDER BY matricula, km ASC";
 
@@ -95,9 +99,9 @@ if (empty($dados)) {
 }
 
 $colunas = [
-    ['titulo' => 'Empresa', 'width' => '12%', 'align' => 'left', 'pad' => 'padding-left:5px;'],
-    ['titulo' => 'Tipo', 'width' => '12%', 'align' => 'left', 'pad' => 'padding-left:5px;'],
-    ['titulo' => 'Matrícula', 'width' => '10%', 'align' => 'left', 'pad' => 'padding-left:5px;'],
+    ['titulo' => 'Empresa', 'width' => '9%', 'align' => 'left', 'pad' => 'padding-left:5px;'],
+    ['titulo' => 'Tipo', 'width' => '6%', 'align' => 'left', 'pad' => 'padding-left:5px;'],
+    ['titulo' => 'Matrícula', 'width' => '7%', 'align' => 'left', 'pad' => 'padding-left:5px;'],
     ['titulo' => 'Descrição', 'width' => '10%', 'align' => 'left', 'pad' => 'padding-left:5px;'],
     ['titulo' => 'KM', 'width' => '7%', 'align' => 'center', 'pad' => ''],
     ['titulo' => 'Funcionário', 'width' => '13%', 'align' => 'left', 'pad' => 'padding-left:5px;'],
@@ -117,8 +121,32 @@ function renderCabecalho($colunas) {
     return $thead;
 }
 
-$html = '<h2 style="text-align:center; color:#004080; font-family: Arial, sans-serif;">Relatório de Abastecimentos</h2>';
-$html .= '<table border="0" cellpadding="4" cellspacing="0" style="border-collapse: collapse; font-family: Arial, sans-serif; font-size: 9pt; width: 100%; border:1px solid #000;">';
+$html = '
+<h2 style="text-align:center; color:#004080; font-family: Arial, sans-serif;">Relatório de Abastecimentos</h2>
+<style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 9pt;
+        font-family: Arial, sans-serif;
+    }
+    th, td {
+        border: 1px solid #000;
+        padding: 4px;
+    }
+    th {
+        background-color: #004080;
+        color: #fff;
+        font-weight: bold;
+        text-align: center;
+    }
+    td {
+        text-align: center;
+    }
+</style>
+';
+
+$html .= '<table border="0" cellpadding="4" cellspacing="0">';
 $html .= renderCabecalho($colunas);
 $html .= '<tbody>';
 
@@ -173,6 +201,7 @@ foreach ($dados as $d) {
     $total_montante_siva += (float)$d['valor_sem_iva'];
 }
 
+// Último subtotal
 $html .= '<tr style="background-color:#e0f7ff; font-weight:bold; font-size: 9pt;">';
 $html .= '<td colspan="8" style="text-align:right; padding-right:5px; border: 1px solid #000;">Subtotal ' . htmlspecialchars($matricula_atual) . ':</td>';
 $html .= '<td style="text-align:right; border: 1px solid #000;">' . number_format($subtotal_lts, 2, ',', '.') . '</td>';
