@@ -6,41 +6,72 @@ if (!isset($_SESSION['id_utilizador'])) {
 }
 include("../php/config.php");
 
-$id = $_SESSION['id_utilizador']; 
+$id_user = $_SESSION['id_utilizador'];
 
-// Buscar empresa(s) do utilizador e unidades
-$sql_user = "SELECT u.empresa_id, e.unidades 
-             FROM utilizadores u 
-             LEFT JOIN empresas e ON u.empresa_id = e.id_empresa 
-             WHERE u.id_utilizador = $id 
-             LIMIT 1";
-$res_user = mysqli_query($con, $sql_user);
+// Buscar empresa do utilizador
+$sql = "SELECT empresa_id FROM utilizadores WHERE id_utilizador = ?";
+$stmt = $con->prepare($sql);
+$stmt->bind_param("i", $id_user);
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+$empresa_id = $row['empresa_id'] ?? null;
 
-$empresa_id = null;
+// Buscar unidades da empresa (array)
 $unidades = [];
-
-if ($res_user && mysqli_num_rows($res_user) > 0) {
-    $user_data = mysqli_fetch_assoc($res_user);
-    $empresa_id = $user_data['empresa_id'] ?? null;
-
-    $unidades_str = $user_data['unidades'] ?? null;
-    if ($unidades_str) {
-        $unidades = array_map('trim', explode(',', $unidades_str));
+if ($empresa_id) {
+    $sql_unidades = "SELECT DISTINCT unidade FROM lista_postos WHERE empresa_id = ?";
+    $stmt = $con->prepare($sql_unidades);
+    $stmt->bind_param("i", $empresa_id);
+    $stmt->execute();
+    $res_unidades = $stmt->get_result();
+    while ($u = $res_unidades->fetch_assoc()) {
+        $unidades[] = $u['unidade'];
     }
-} 
+}
+
+// Buscar postos e stocks associados à empresa
+$postos = [];
+if ($empresa_id) {
+    $sql_postos = "
+    SELECT 
+        p.id_posto, 
+        p.nome, 
+        p.unidade, 
+        p.local, 
+        p.capacidade,
+        0 AS litros_entrada, -- movimentos_stock não tem posto_id, valor fixo por agora
+        (
+            COALESCE((SELECT SUM(a.litros) FROM abastecimentos a), 0) +
+            COALESCE((SELECT SUM(b.litros) FROM bomba b), 0)
+        ) AS litros_saida
+
+    FROM lista_postos p
+    WHERE p.empresa_id = ?
+    ";
+
+    $stmt = $con->prepare($sql_postos);
+    $stmt->bind_param("i", $empresa_id);
+    $stmt->execute();
+    $result_postos = $stmt->get_result();
+    while ($row = $result_postos->fetch_assoc()) {
+        $litros_atuais = $row['litros_entrada'] - $row['litros_saida'];
+        $row['litros'] = max($litros_atuais, 0); // evita negativos
+        $postos[] = $row;
+    }
+}
 
 // Preço Litro Gasóleo com filtro da empresa do utilizador (baseado nas unidades)
 if (!empty($unidades)) {
     $unidades_escaped = array_map(fn($u) => "'" . mysqli_real_escape_string($con, $u) . "'", $unidades);
     $unidades_sql = implode(',', $unidades_escaped);
-
     $sql = "SELECT preco_litro 
             FROM fornecimentos_bomba 
             WHERE unidade IN ($unidades_sql) AND tipo_combustivel = 'Gasóleo' 
             ORDER BY data DESC 
             LIMIT 1";
 } else {
-    $sql = "SELECT preco_litro FROM fornecimentos_bomba ORDER BY data DESC LIMIT 1";
+    $sql = "SELECT preco_litro FROM fornecimentos_bomba WHERE tipo_combustivel = 'Gasóleo' ORDER BY data DESC LIMIT 1";
 }
 
 $result = mysqli_query($con, $sql);
@@ -49,29 +80,34 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
     $preco = number_format($row['preco_litro'], 2, ',', ' ') . ' €';
 }
 
-// Contar veículos ativos (filtrar por empresa_atual_id)
+// Contar veículos ativos da empresa
 if ($empresa_id !== null) {
-    $sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo' AND empresa_atual_id = $empresa_id";
+    $sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo' AND empresa_atual_id = ?";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $empresa_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+    $total_ativos = $row['total_ativos'] ?? 0;
 } else {
-    $sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo'";
+    $total_ativos = 0;
 }
-$result = mysqli_query($con, $sql);
-$row = $result ? mysqli_fetch_assoc($result) : null;
-$total_ativos = $row['total_ativos'] ?? 0;
 
-// Contar veículos em manutenção (filtrar por empresa_atual_id)
+// Contar veículos em manutenção da empresa
 if ($empresa_id !== null) {
-    $sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'Manutenção' AND empresa_atual_id = $empresa_id";
+    $sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'Manutenção' AND empresa_atual_id = ?";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $empresa_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+    $veiculos_manutencao = $row['total_manutencao'] ?? 0;
 } else {
-    $sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'Manutenção'";
+    $veiculos_manutencao = 0;
 }
-$result = mysqli_query($con, $sql);
-$row = $result ? mysqli_fetch_assoc($result) : null;
-$veiculos_manutencao = $row['total_manutencao'] ?? 0;
 
 // Buscar níveis de combustível para cada unidade
 $nivel_combustivel_unidades = [];
-
 if (!empty($unidades)) {
     $stmt = $con->prepare("SELECT litros FROM stock_combustivel WHERE localizacao = ? LIMIT 1");
     foreach ($unidades as $unidade) {
@@ -87,14 +123,22 @@ if (!empty($unidades)) {
 // Capacidade total fixa (podes alterar para buscar de base de dados se existir)
 $capacidade_total = 10000;
 
-// Total abastecimentos do mês atual (sem filtro de empresa, podes adaptar)
-$sql = "SELECT COUNT(*) AS total 
-        FROM abastecimentos 
-        WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) 
-        AND YEAR(data_abastecimento) = YEAR(CURDATE())";
-$result = mysqli_query($con, $sql);
-$row = $result ? mysqli_fetch_assoc($result) : null;
-$total_mes = $row['total'] ?? 0;
+// Total abastecimentos do mês atual da empresa (adaptei com filtro empresa_id)
+if ($empresa_id !== null) {
+    $sql = "SELECT COUNT(*) AS total 
+            FROM abastecimentos 
+            WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) 
+            AND YEAR(data_abastecimento) = YEAR(CURDATE())
+            AND id_empresa = ?";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $empresa_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+    $total_mes = $row['total'] ?? 0;
+} else {
+    $total_mes = 0;
+}
 
 // Nome do mês em português
 setlocale(LC_TIME, 'pt_PT.UTF-8');
@@ -104,44 +148,7 @@ $mes_atual = $formatter->format(new DateTime());
 
 $dados_unidades_json = json_encode($nivel_combustivel_unidades);
 $capacidade_total_js = $capacidade_total;
-
-$unidade_selecionada = $_GET['unidade'] ?? null;
-$empresa_id = null;
-$empresa_nome = '';
-$unidade_nome = '';
-
-// Exemplo: buscar dados da unidade selecionada na tabela "lista_postos"
-if ($unidade_selecionada) {
-    $stmt = $con->prepare("SELECT unidade, empresa_id FROM lista_postos WHERE id = ?");
-    $stmt->bind_param("i", $unidade_selecionada);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res && $row = $res->fetch_assoc()) {
-        $unidade_nome = $row['unidade'];       // Nome ou código da unidade
-        $empresa_id = $row['empresa_id'];      // Id da empresa associada
-    }
-    $stmt->close();
-}
-$nome_bomba = 'Sem bomba associada';
-
-if (!empty($unidades)) {
-    // Vamos buscar o primeiro nome da unidade do array $unidades
-    $unidade_principal = $unidades[0];
-
-    $stmt = $con->prepare("SELECT nome FROM lista_postos WHERE unidade = ? LIMIT 1");
-    $stmt->bind_param("s", $unidade_principal);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res && $row = $res->fetch_assoc()) {
-        $nome_bomba = $row['nome'];
-    }
-    $stmt->close();
-}
-
-
-
 ?>
-
 
 <!DOCTYPE html>
 <html
@@ -160,14 +167,10 @@ if (!empty($unidades)) {
     />
 
     <title> Dashboard | Controlo Veiculos</title>
-
     <meta name="description" content="" />
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
     <!-- Ambipombal -->
     <link rel="icon" type="image/x-icon" href="../assets/img/ambipombal/ambipombal.ico" />
-
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -175,37 +178,19 @@ if (!empty($unidades)) {
       href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
       rel="stylesheet"
     />
-
-    <!-- Icons. Uncomment required icon fonts -->
     <link rel="stylesheet" href="../assets/vendor/fonts/boxicons.css" />
-
-    <!-- Core CSS -->
     <link rel="stylesheet" href="../assets/vendor/css/core.css" class="template-customizer-core-css" />
     <link rel="stylesheet" href="../assets/vendor/css/theme-default.css" class="template-customizer-theme-css" />
     <link rel="stylesheet" href="../assets/css/demo.css" />
-
-    <!-- Vendors CSS -->
     <link rel="stylesheet" href="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
-
     <link rel="stylesheet" href="../assets/vendor/libs/apex-charts/apex-charts.css" />
-
-    <!-- Page CSS -->
-
-    <!-- Helpers -->
     <script src="../assets/vendor/js/helpers.js"></script>
-
     <script>
   const dadosUnidades = <?php echo json_encode($nivel_combustivel_unidades); ?>;
   const nomesUnidades = <?php echo json_encode(array_keys($nivel_combustivel_unidades)); ?>;
   const capacidadeTotal = <?php echo (int)$capacidade_total; ?>;
 </script>
-
-
-
-    <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
-    <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
-    <script src="../assets/js/config.js"></script>
-
+      <script src="../assets/js/config.js"></script>
         <style>
         body { font-family: Arial, sans-serif; margin: 20px; }  
         .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; width: 300px; }
@@ -222,8 +207,6 @@ if (!empty($unidades)) {
             width: 0;
             transition: width 0.5s ease;
         }
-
-        
     </style>
   </head>
 
@@ -231,10 +214,7 @@ if (!empty($unidades)) {
     <!-- Layout wrapper -->
     <div class="layout-wrapper layout-content-navbar">
       <div class="layout-container">
-
-        <!-- Menu -->
-
-        <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+      <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
   <div class="app-brand demo">
     <a href="index.php" class="app-brand-link">
       <span class="app-brand-logo demo">
@@ -345,12 +325,8 @@ if (!empty($unidades)) {
   </div>
   </ul>
 </aside>
-
         <!-- / Menu -->
-
-        <!-- Layout container -->
         <div class="layout-page">
-          <!-- Navbar -->
           <nav
             class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme"
             id="layout-navbar"
@@ -419,18 +395,12 @@ if (!empty($unidades)) {
                     </li>
                   </ul>
                 </li>
-                <!--/ User -->
               </ul>
           </nav>
-          <!-- / Navbar -->
-
-          
-          <!-- Content wrapper -->
           <div class="content-wrapper">
-            <!-- Content -->
-
           <div class="container-xxl flex-grow-1 container-p-y">
           <div class="row">
+
         <!-- Card 1 -->
         <div class="col-md-4 mb-4">
           <div class="card">
@@ -457,7 +427,6 @@ if (!empty($unidades)) {
           </div>
         </div>
 
-
         <!-- Card 2 -->
         <div class="col-md-4 mb-4">
           <div class="card">
@@ -479,7 +448,6 @@ if (!empty($unidades)) {
               <span class="fw-semibold d-block mb-1">Nº Abastecimentos este mês</span>
               <h3 class="card-title mb-2"><?= $total_mes ?></h3>
               <small class="text-muted"><?= ucfirst($mes_atual) ?></small>
-
             </div>
           </div>
         </div>
@@ -508,37 +476,44 @@ if (!empty($unidades)) {
             </div>
           </div>
         </div>
-       <!-- Linha com Card Redinha + Botões -->
         <div class="row mb-4">
 
-          <!-- Card Combustível Redinha -->
-          <div class="col-md-4 mb-4">
-            <div class="card h-100">
-              <div class="card-body d-flex flex-column">
-                <a id="btnFornecer" href="../abastecimentos/fornecer_comb.php" class="btn btn-primary btn-sm mb-3 align-self-start">
-                  Fornecer Combustível
-                </a>
+          <!-- Card Combustível -->
+          <div class="container mt-5">
+            <h1 class="mb-4">Postos Associados</h1>
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
-
-                  <h2 id="unidadeNome"><?= htmlspecialchars($nome_bomba) ?></h2>
-
-                  
-                </div>
-
-                <div>
-                  <strong>Nível de Combustível:</strong> <span id="nivelLitros">0</span> litros
-                </div>
-
-                <div class="progress my-2" style="height: 20px;">
-                  <div id="progressBar" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-
-                <small><span id="percentagemLitros">0</span>% da capacidade total</small>
+            <?php if (count($postos) === 0): ?>
+              <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
+            <?php else: ?>
+              <div class="row">
+                <?php foreach ($postos as $posto): 
+                  $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
+                  $cor = ($percentagem > 70) ? 'green' : (($percentagem > 30) ? 'orange' : 'red');
+                ?>
+                  <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm h-100">
+                      <div class="card-body d-flex flex-column justify-content-between">
+                        <div>
+                          <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
+                            <a class="btn btn-sm btn-outline-primary" href="..\abastecimentos\fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
+                          </div>
+                          <div class="progress mb-2" style="height: 8px; background-color: #eee;">
+                            <div class="progress-bar" style="width: <?= $percentagem ?>%; background-color: <?= $cor ?>;"></div>
+                          </div>
+                          <small class="text-muted"><?= $percentagem ?>% da capacidade total</small>
+                        </div>
+                        <div class="mt-3 small text-muted">
+                          <?= htmlspecialchars($posto['unidade']) ?> · <?= htmlspecialchars($posto['local']) ?> <br>
+                          <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= $posto['capacidade'] ?? 0 ?> L
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
               </div>
-            </div>
+            <?php endif; ?>
           </div>
-
 
           <!-- Botões de Relatórios (à direita do card) -->
           <div class="col-md-4 mb-4">
@@ -567,36 +542,17 @@ if (!empty($unidades)) {
               </div>
             </div>
           </div>
-
         </div>
-
-
-
-      <!-- Overlay -->
       <div class="layout-overlay layout-menu-toggle"></div>
     </div>
-    <!-- / Layout wrapper -->
-
-    <!-- Core JS -->
-    <!-- build:js assets/vendor/js/core.js -->
     <script src="../assets/vendor/libs/jquery/jquery.js"></script>
     <script src="../assets/vendor/libs/popper/popper.js"></script>
     <script src="../assets/vendor/js/bootstrap.js"></script>
     <script src="../assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-
     <script src="../assets/vendor/js/menu.js"></script>
-    <!-- endbuild -->
-
-    <!-- Vendors JS -->
     <script src="../assets/vendor/libs/apex-charts/apexcharts.js"></script>
-
-    <!-- Main JS -->
     <script src="../assets/js/main.js"></script>
-
-    <!-- Page JS -->
     <script src="../assets/js/dashboards-analytics.js"></script>
-
-    <!-- Place this tag in your head or just before your close body tag. -->
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <script>
       const dadosUnidades = <?= $dados_unidades_json ?>;
@@ -611,7 +567,51 @@ if (!empty($unidades)) {
       const progressBar = document.getElementById('progressBar');
       const btnPrev = document.getElementById('btnPrev');
       const btnNext = document.getElementById('btnNext');
-
     </script>
+    <script>
+const postos = <?= json_encode($postos) ?>;
+const capacidadeTotal = 10000; // ajustar se necessário
+let indexAtual = 0;
+
+function mostrarPosto(i) {
+  if (postos.length === 0) return;
+
+  const posto = postos[i];
+  document.getElementById('posto-nome').textContent = posto.nome;
+  document.getElementById('posto-unidade').textContent = posto.unidade;
+  document.getElementById('posto-local').textContent = posto.local;
+
+  // Para simplificar, tipo_combustivel e litros estão hardcoded - precisas adaptar conforme dados reais
+  // Exemplo:
+  const tipo = "Gasóleo"; // substituir pelo valor correto se disponível
+  const litros = 5000;    // substituir pelo valor correto se disponível
+
+  document.getElementById('posto-tipo').textContent = tipo;
+  document.getElementById('posto-litros').textContent = litros;
+
+  const percentagem = ((litros / capacidadeTotal) * 100).toFixed(1);
+  document.getElementById('posto-percentagem').textContent = percentagem;
+
+  // Link para a página fornecer_comb.php com o id_posto
+  document.getElementById('fornecer-link').href = `fornecer_comb.php?posto_id=${posto.id_posto}`;
+}
+
+function anteriorPosto() {
+  if (indexAtual > 0) {
+    indexAtual--;
+    mostrarPosto(indexAtual);
+  }
+}
+
+function proximoPosto() {
+  if (indexAtual < postos.length - 1) {
+    indexAtual++;
+    mostrarPosto(indexAtual);
+  }
+}
+
+// Mostrar o primeiro posto ao carregar
+mostrarPosto(indexAtual);
+</script>
   </body>
 </html>
