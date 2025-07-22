@@ -6,7 +6,6 @@ if (!isset($_SESSION['id_utilizador'])) {
 }
 include("../php/config.php");
 $con->set_charset("utf8mb4");
-include("atualizar_medias.php");
 
 // Carrega lista de veículos
 $veiculos = [];

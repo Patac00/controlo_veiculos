@@ -17,77 +17,55 @@ $stmt->execute();
 $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 $empresa_id = $row['empresa_id'] ?? null;
+$stmt->close();
 
-// Buscar unidades da empresa
-// Stock combustível por unidade
+// Para evitar erro, declaramos $unidades vazio
+$unidades = [];
+
+// Como não tens a tabela 'unidades', não vamos buscar nada aqui
+
+// Stock combustível por unidade (vai ficar vazio)
 $nivel_combustivel_unidades = [];
-if (!empty($unidades)) {
-    $sql = "SELECT litros FROM stock_combustivel WHERE unidade = ? LIMIT 1";
+
+// Buscar postos e stocks para a empresa
+$postos = [];
+if ($empresa_id) {
+  $sql = "
+      SELECT 
+          p.id_posto, 
+          p.nome, 
+          p.capacidade,
+          p.unidade,
+          p.local,
+          COALESCE(SUM(m.litros), 0) AS litros
+      FROM lista_postos p
+      LEFT JOIN movimentos_stock m ON m.id_posto = p.id_posto AND m.empresa_id = ?
+      WHERE p.empresa_id = ?
+      GROUP BY p.id_posto, p.nome, p.capacidade, p.unidade, p.local
+  ";
+
     $stmt = $con->prepare($sql);
-    foreach ($unidades as $unidade) {
-        $stmt->bind_param("s", $unidade);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $row = $res->fetch_assoc();
-        $nivel_combustivel_unidades[$unidade] = $row['litros'] ?? 0;
+    $stmt->bind_param("ii", $empresa_id, $empresa_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    while ($row = $res->fetch_assoc()) {
+        $postos[] = $row;
     }
     $stmt->close();
 }
 
-// Buscar postos e stocks
-
-$postos = [];
-if ($empresa_id) {
-    $sql = "
-        SELECT 
-            p.id_posto, 
-            p.nome, 
-            p.unidade, 
-            p.local,
-            p.capacidade,
-
-            COALESCE((
-                SELECT SUM(m.litros) 
-                FROM movimentos_stock m
-                WHERE m.id_posto = p.id_posto
-            ), 0) AS litros_entrada,
-
-            (
-                COALESCE((SELECT SUM(a.litros) FROM abastecimentos a WHERE a.id_posto = p.id_posto), 0) +
-                COALESCE((SELECT SUM(b.quantidade) FROM bomba b WHERE b.id_posto = p.id_posto), 0)
-            ) AS litros_saida
-        FROM lista_postos p
-        WHERE p.empresa_id = ?
-    ";
-    $stmt = $con->prepare($sql);
-    $stmt->bind_param("i", $empresa_id);
+// Preço litro gasóleo (sem unidades, só o último geral)
+$preco = 'Erro -_-';
+$sql = "SELECT preco_litro FROM fornecimentos_bomba WHERE tipo_combustivel = 'Gasóleo' ORDER BY data DESC LIMIT 1";
+$stmt = $con->prepare($sql);
+if ($stmt) {
     $stmt->execute();
     $res = $stmt->get_result();
-    while ($row = $res->fetch_assoc()) {
-        $litros_atuais = $row['litros_entrada'] - $row['litros_saida'];
-        $row['litros'] = max($litros_atuais, 0);
-        $postos[] = $row;
+    if ($res && $row = $res->fetch_assoc()) {
+        $preco = number_format($row['preco_litro'], 2, ',', ' ') . ' €';
     }
-}
-
-
-
-// Preço litro gasóleo
-$preco = 'Erro -_-';
-if (!empty($unidades)) {
-    $in_clause = implode(',', array_fill(0, count($unidades), '?'));
-    $tipos = str_repeat('s', count($unidades));
-    $sql = "SELECT preco_litro FROM fornecimentos_bomba WHERE unidade IN ($in_clause) AND tipo_combustivel = 'Gasóleo' ORDER BY data DESC LIMIT 1";
-    $stmt = $con->prepare($sql);
-    $stmt->bind_param($tipos, ...$unidades);
-} else {
-    $sql = "SELECT preco_litro FROM fornecimentos_bomba WHERE tipo_combustivel = 'Gasóleo' ORDER BY data DESC LIMIT 1";
-    $stmt = $con->prepare($sql);
-}
-$stmt->execute();
-$res = $stmt->get_result();
-if ($res && $row = $res->fetch_assoc()) {
-    $preco = number_format($row['preco_litro'], 2, ',', ' ') . ' €';
+    $stmt->close();
 }
 
 // Veículos ativos
@@ -100,6 +78,7 @@ if ($empresa_id) {
     $res = $stmt->get_result();
     $row = $res->fetch_assoc();
     $total_ativos = $row['total'] ?? 0;
+    $stmt->close();
 }
 
 // Veículos em manutenção
@@ -112,47 +91,35 @@ if ($empresa_id) {
     $res = $stmt->get_result();
     $row = $res->fetch_assoc();
     $veiculos_manutencao = $row['total'] ?? 0;
-}
-
-// Stock combustível por unidade
-$nivel_combustivel_unidades = [];
-if (!empty($unidades)) {
-    $sql = "SELECT litros FROM stock_combustivel WHERE id_posto = ? LIMIT 1";
-    $stmt = $con->prepare($sql);
-    foreach ($unidades as $id_posto) {
-        $stmt->bind_param("i", $id_posto);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $row = $res->fetch_assoc();
-        $nivel_combustivel_unidades[$id_posto] = $row['litros'] ?? 0;
-    }
     $stmt->close();
 }
 
-
-// Capacidade total
+// Capacidade total (exemplo fixo)
 $capacidade_total = 10000;
 
 // Total abastecimentos do mês
 $total_mes = 0;
 if ($empresa_id) {
-    $sql = "SELECT COUNT(*) AS total FROM abastecimentos WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) AND YEAR(data_abastecimento) = YEAR(CURDATE()) AND id_empresa = ?";
+    $sql = "SELECT COUNT(*) AS total FROM abastecimentos WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) AND YEAR(data_abastecimento) = YEAR(CURDATE()) AND empresa_id = ?";
     $stmt = $con->prepare($sql);
     $stmt->bind_param("i", $empresa_id);
     $stmt->execute();
     $res = $stmt->get_result();
     $row = $res->fetch_assoc();
     $total_mes = $row['total'] ?? 0;
+    $stmt->close();
 }
 
-// Mês atual
+// Mês atual em português
 setlocale(LC_TIME, 'pt_PT.UTF-8');
 $formatter = new IntlDateFormatter('pt_PT', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
 $formatter->setPattern('MMMM');
-$mes_atual = $formatter->format(new DateTime());
+$mes_atual = ucfirst($formatter->format(new DateTime()));
 
+// Dados JSON para uso em JS
 $dados_unidades_json = json_encode($nivel_combustivel_unidades);
-$capacidade_total_js = $capacidade_total;
+$capacidade_total_js = (int)$capacidade_total;
+
 ?>
 
 
@@ -184,6 +151,9 @@ $capacidade_total_js = $capacidade_total;
       href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
       rel="stylesheet"
     />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+
+
     <link rel="stylesheet" href="../assets/vendor/fonts/boxicons.css" />
     <link rel="stylesheet" href="../assets/vendor/css/core.css" class="template-customizer-core-css" />
     <link rel="stylesheet" href="../assets/vendor/css/theme-default.css" class="template-customizer-theme-css" />
@@ -485,39 +455,85 @@ $capacidade_total_js = $capacidade_total;
         <div class="row mb-4">
 
           <!-- Card Combustível -->
-          <div class="container mt-5">
-            <h1 class="mb-4">Postos Associados</h1>
-            <?php if (count($postos) === 0): ?>
-              <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
-            <?php else: ?>
-              <div class="row">
-                <?php foreach ($postos as $posto): 
-                  $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
-                  $cor = ($percentagem > 70) ? 'green' : (($percentagem > 30) ? 'orange' : 'red');
-                ?>
-                  <div class="col-md-4 mb-4">
-                    <div class="card shadow-sm h-100">
-                      <div class="card-body d-flex flex-column justify-content-between">
-                        <div>
-                          <div class="card-title d-flex align-items-start justify-content-between mb-2">
-                            <h2 class="h5 mb-0"><?= htmlspecialchars($posto['nome']) ?></h2>
-                            <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">+ detalhes</a>
-                          </div>
+        <div class="container mt-5">
+  <h1 class="mb-4">Postos Associados</h1>
 
-                          <strong>Nível de Combustível:</strong> <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> litros<br />
+  <?php if (count($postos) === 0): ?>
+    <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
+  <?php else: ?>
+    <div class="row">
+      <?php foreach ($postos as $posto): 
+        $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
+        $percentagem = min(100, max(0, $percentagem));
+        $cor = ($percentagem > 70) ? 'bg-success' : (($percentagem > 30) ? 'bg-warning' : 'bg-danger');
+      ?>
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-body d-flex flex-column justify-content-between">
+              <div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
+                  <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
+                </div>
 
-                          <div class="progress-bar" style="background-color: #eee;">
-                            <div class="progress" style="width: <?= $percentagem ?>%; background-color: <?= $cor ?>;"></div>
-                          </div>
-                          <small><?= $percentagem ?>% da capacidade total</small>
-                        </div>
-                      </div>
-                    </div>
+                <div class="progress mb-2" style="height: 20px; background-color: #ffffffff;">
+                  <div class="progress-bar <?= $cor ?>" role="progressbar" style="width: <?= max(5, $percentagem) ?>%;">
+                    <?= $percentagem ?>%
                   </div>
-                <?php endforeach; ?>
+                </div>
+                <small class="text-muted"><?= $percentagem ?>% da capacidade total (<?= number_format($posto['capacidade'], 0, ',', '.') ?> L)</small>
               </div>
-            <?php endif; ?>
+
+              <div class="mt-3 small text-muted">
+                <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= number_format($posto['capacidade'] ?? 0, 0, ',', '.') ?> L
+              </div>
+            </div>
           </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+</div>
+
+<div class="container mt-5">
+  <h1 class="mb-4">Postos Associados</h1>
+  <?php if (count($postos) === 0): ?>
+    <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
+  <?php else: ?>
+    <div class="row">
+      <?php foreach ($postos as $posto): 
+        $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
+        $percentagem = min(100, max(0, $percentagem));
+        $cor = ($percentagem > 70) ? 'bg-success' : (($percentagem > 30) ? 'bg-warning' : 'bg-danger');
+      ?>
+        <div class="col-md-4 mb-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-body d-flex flex-column justify-content-between">
+              <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
+                  <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
+                </div>
+
+                <div class="progress mb-2" style="height: 20px; background-color: #dee2e6;">
+                  <div class="progress-bar <?= $cor ?>" style="width: <?= $percentagem ?>%; min-width: 30px;"></div>
+                </div>
+                <small class="text-muted">
+                  <?= $percentagem ?>% da capacidade total (<?= number_format($posto['capacidade'], 0, ',', '.') ?> L)
+                </small>
+              </div>
+              <div class="mt-3 small text-muted">
+                <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= $posto['capacidade'] ?? 0 ?> L
+              </div>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+</div>
+
+
 
 
           <!-- Botões de Relatórios (à direita do card) -->

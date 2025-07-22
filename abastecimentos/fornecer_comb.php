@@ -20,8 +20,9 @@ $unidade_selecionada = null;
 
 // Buscar empresa e unidades do utilizador
 $sql_user = "SELECT u.empresa_id, e.unidades, e.nome AS empresa_nome FROM utilizadores u
-             LEFT JOIN empresas e ON u.empresa_id = e.id_empresa
+             LEFT JOIN empresas e ON u.empresa_id = e.empresa_id
              WHERE u.id_utilizador = ? LIMIT 1";
+
 $stmt_user = $con->prepare($sql_user);
 $stmt_user->bind_param("i", $id);
 $stmt_user->execute();
@@ -43,7 +44,7 @@ while ($row = mysqli_fetch_assoc($res)) {
 // Buscar postos associados à empresa
 $postos = [];
 if ($empresa_id_sessao) {
-    $stmt = $con->prepare("SELECT unidades FROM empresas WHERE id_empresa = ?");
+    $stmt = $con->prepare("SELECT unidades FROM empresas WHERE empresa_id = ?");
     $stmt->bind_param("i", $empresa_id_sessao);
     $stmt->execute();
     $stmt->bind_result($unidades_str);
@@ -65,8 +66,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_posto = $_POST['id_posto'] ?? null;  // mudou para id_posto
     $fatura = $_POST['fatura'] ?? null;
     $litros = floatval($_POST['litros']);
-    $id_empresa = $_POST['id_empresa'] ?? null; // aqui recebo o empresa_id via POST
+    $id_empresa = $_POST['empresa_id'] ?? null; // pode ser id ou nome
     $unidade_escolhida = null;
+
+    // Validar se id_empresa é id ou nome e obter empresa_id real
+    if ($id_empresa) {
+        if (is_numeric($id_empresa)) {
+            $empresa_id = (int)$id_empresa;
+        } else {
+            $sql_empresa = "SELECT empresa_id FROM empresas WHERE nome = ? LIMIT 1";
+            $stmt_empresa = $con->prepare($sql_empresa);
+            $stmt_empresa->bind_param("s", $id_empresa);
+            $stmt_empresa->execute();
+            $res_empresa = $stmt_empresa->get_result();
+            if ($res_empresa && $row_emp = $res_empresa->fetch_assoc()) {
+                $empresa_id = (int)$row_emp['empresa_id'];
+            } else {
+                $empresa_id = null; // nome não encontrado
+            }
+            $stmt_empresa->close();
+        }
+    } else {
+        $empresa_id = null;
+    }
 
     // Buscar unidade correspondente ao id_posto escolhido
     if ($id_posto) {
@@ -81,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_unidade->close();
     }
 
-    if ($data && $tipo_combustivel && $litros > 0 && $preco_litro && $id_posto && $fatura && $id_empresa && $unidade_escolhida !== null) {
+    if ($data && $tipo_combustivel && $litros > 0 && $preco_litro && $id_posto && $fatura && $empresa_id && $unidade_escolhida !== null) {
         if ($litros > 10000) {
             $mensagem = "Erro: não podes inserir mais que 10000 litros de uma vez.";
             $tipo_mensagem = "danger";
@@ -101,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             "Já existem $total_atual litros registados, estás a tentar adicionar $litros litros.";
                 $tipo_mensagem = "danger";
             } else {
-                $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, id_posto, preco_litro, fatura, id_empresa, unidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("ssdidsis", $data, $tipo_combustivel, $litros, $id_posto, $preco_litro, $fatura, $id_empresa, $unidade_escolhida);
+                $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, id_posto, preco_litro, fatura, empresa_id, unidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssdidsis", $data, $tipo_combustivel, $litros, $id_posto, $preco_litro, $fatura, $empresa_id, $unidade_escolhida);
 
                 if ($stmt->execute()) {
                     $mensagem = "✅ Fornecimento registado com sucesso!";
@@ -118,7 +140,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_check->close();
         }
     } else {
-        $mensagem = "Por favor, preenche todos os campos corretamente.";
+        $missing = [];
+        if (!$data) $missing[] = 'Data';
+        if (!$tipo_combustivel) $missing[] = 'Tipo de Combustível';
+        if ($litros <= 0) $missing[] = 'Litros (deve ser maior que 0)';
+        if (!$preco_litro) $missing[] = 'Preço por Litro';
+        if (!$id_posto) $missing[] = 'Posto';
+        if (!$fatura) $missing[] = 'Fatura';
+        if (!$empresa_id) $missing[] = 'Empresa';
+        if ($unidade_escolhida === null) $missing[] = 'Unidade';
+
+        $mensagem = "Por favor, preenche corretamente os seguintes campos: " . implode(', ', $missing) . ".";
         $tipo_mensagem = "warning";
     }
 }
@@ -143,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if (!empty($mensagem)): ?>
           <div class="alert alert-<?= $tipo_mensagem ?> alert-dismissible fade show" role="alert">
-            <?= htmlspecialchars($mensagem) ?>
+            <?= $tipo_mensagem === 'danger' ? $mensagem : htmlspecialchars($mensagem) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
           </div>
         <?php endif; ?>
@@ -156,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form action="" method="post">
           <!-- Aqui o hidden para enviar o empresa_id -->
-          <input type="hidden" name="id_empresa" value="<?= htmlspecialchars($empresa_id_sessao) ?>">
+          <input type="hidden" name="empresa_nome" value="<?= htmlspecialchars($empresa_id_sessao) ?>">
 
           <!-- Mostrar a unidade -->
           <div class="mb-3">

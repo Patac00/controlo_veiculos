@@ -117,6 +117,13 @@ $res = mysqli_query($con, "SELECT id, nome FROM tipo_combustivel ORDER BY nome")
 while ($row = mysqli_fetch_assoc($res)) {
     $tipos_combustivel[] = $row;
 }
+
+// Puxar id do combustível "Gasóleo"
+$gasoleo_id = null;
+$res_gasoleo = $con->query("SELECT id FROM tipo_combustivel WHERE nome = 'Gasóleo' LIMIT 1");
+if ($res_gasoleo && $row_gasoleo = $res_gasoleo->fetch_assoc()) {
+    $gasoleo_id = $row_gasoleo['id'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -237,12 +244,14 @@ while ($row = mysqli_fetch_assoc($res)) {
     <select name="id_tipo_combustivel" required>
       <option value="">Selecionar...</option>
       <?php foreach ($tipos_combustivel as $t): ?>
-        <option value="<?= $t['id'] ?>" <?= (isset($_POST['id_tipo_combustivel']) && $_POST['id_tipo_combustivel'] == $t['id']) ? 'selected' : '' ?>>
+        <option value="<?= $t['id'] ?>" <?= 
+          (isset($_POST['id_tipo_combustivel']) && $_POST['id_tipo_combustivel'] == $t['id']) || 
+          (!isset($_POST['id_tipo_combustivel']) && $t['id'] == $gasoleo_id) ? 'selected' : '' ?>>
           <?= htmlspecialchars($t['nome']) ?>
         </option>
       <?php endforeach; ?>
     </select>
-
+    
     <div style="display: flex; gap: 10px; margin-top: 15px;">
       <div style="flex: 1;">
         <label>Litros:</label>
