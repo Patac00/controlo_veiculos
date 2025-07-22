@@ -28,7 +28,7 @@ $stmt_user->execute();
 $res_user = $stmt_user->get_result();
 if ($res_user && mysqli_num_rows($res_user) > 0) {
     $user_data = $res_user->fetch_assoc();
-    $empresa_id = (int)$user_data['empresa_id'];
+    $empresa_id_sessao = (int)$user_data['empresa_id']; // guardo da sessão para default
     $unidade_str = $user_data['unidades'];
     $empresa_nome = $user_data['empresa_nome'];
 }
@@ -42,9 +42,9 @@ while ($row = mysqli_fetch_assoc($res)) {
 
 // Buscar postos associados à empresa
 $postos = [];
-if ($empresa_id) {
+if ($empresa_id_sessao) {
     $stmt = $con->prepare("SELECT unidades FROM empresas WHERE id_empresa = ?");
-    $stmt->bind_param("i", $empresa_id);
+    $stmt->bind_param("i", $empresa_id_sessao);
     $stmt->execute();
     $stmt->bind_result($unidades_str);
     $stmt->fetch();
@@ -62,32 +62,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = $_POST['data'] ?? null;
     $tipo_combustivel = $_POST['tipo_combustivel'] ?? null;
     $preco_litro = $_POST['preco_litro'] ?? null;
-    $localizacao = $_POST['localizacao'] ?? null;
+    $id_posto = $_POST['id_posto'] ?? null;  // mudou para id_posto
     $fatura = $_POST['fatura'] ?? null;
     $litros = floatval($_POST['litros']);
+    $id_empresa = $_POST['id_empresa'] ?? null; // aqui recebo o empresa_id via POST
     $unidade_escolhida = null;
 
-    // Buscar unidade correspondente à localização escolhida
-    if ($localizacao) {
-        $sql_unidade = "SELECT unidade FROM lista_postos WHERE nome = ? LIMIT 1";
+    // Buscar unidade correspondente ao id_posto escolhido
+    if ($id_posto) {
+        $sql_unidade = "SELECT unidade FROM lista_postos WHERE id_posto = ? LIMIT 1";
         $stmt_unidade = $con->prepare($sql_unidade);
-        $stmt_unidade->bind_param("s", $localizacao);
+        $stmt_unidade->bind_param("i", $id_posto);
         $stmt_unidade->execute();
         $res_unidade = $stmt_unidade->get_result();
         if ($res_unidade && $row_unidade = $res_unidade->fetch_assoc()) {
-            $unidade_escolhida = $row_unidade['unidade'];  // É string ou int, conforme a coluna
+            $unidade_escolhida = $row_unidade['unidade'];
         }
         $stmt_unidade->close();
     }
 
-    if ($data && $tipo_combustivel && $litros > 0 && $preco_litro && $localizacao && $fatura && $empresa_id && $unidade_escolhida !== null) {
+    if ($data && $tipo_combustivel && $litros > 0 && $preco_litro && $id_posto && $fatura && $id_empresa && $unidade_escolhida !== null) {
         if ($litros > 10000) {
             $mensagem = "Erro: não podes inserir mais que 10000 litros de uma vez.";
             $tipo_mensagem = "danger";
         } else {
-            $sql = "SELECT COALESCE(SUM(litros), 0) AS total FROM fornecimentos_bomba WHERE tipo_combustivel = ? AND localizacao = ? AND data = ?";
+            $sql = "SELECT COALESCE(SUM(litros), 0) AS total FROM fornecimentos_bomba WHERE tipo_combustivel = ? AND id_posto = ? AND data = ?";
             $stmt_check = $con->prepare($sql);
-            $stmt_check->bind_param("sss", $tipo_combustivel, $localizacao, $data);
+            $stmt_check->bind_param("sis", $tipo_combustivel, $id_posto, $data);
             $stmt_check->execute();
             $result = $stmt_check->get_result();
             $row = $result->fetch_assoc();
@@ -96,11 +97,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $novo_total = $total_atual + $litros;
 
             if ($novo_total > 10000) {
-                $mensagem = "Erro: Limite de 10.000 litros ultrapassado para este tipo de combustível, localização e data.";
+                $mensagem = "Erro: Limite de 10.000 litros ultrapassado para este tipo de combustível, posto e data.<br>" .
+                            "Já existem $total_atual litros registados, estás a tentar adicionar $litros litros.";
                 $tipo_mensagem = "danger";
             } else {
-                $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, localizacao, preco_litro, fatura, empresa_id, unidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("ssdssdsi", $data, $tipo_combustivel, $litros, $localizacao, $preco_litro, $fatura, $empresa_id, $unidade_escolhida);
+                $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, id_posto, preco_litro, fatura, id_empresa, unidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssdidsis", $data, $tipo_combustivel, $litros, $id_posto, $preco_litro, $fatura, $id_empresa, $unidade_escolhida);
 
                 if ($stmt->execute()) {
                     $mensagem = "✅ Fornecimento registado com sucesso!";
@@ -150,16 +152,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="mb-3">
           <label class="form-label">Empresa</label>
           <input type="text" class="form-control" value="<?= htmlspecialchars($empresa_nome) ?>" readonly>
-          <input type="hidden" name="empresa_id" value="<?= htmlspecialchars($empresa_id) ?>">
-        </div>
-
-        <!-- Mostrar a unidade -->
-        <div class="mb-3">
-          <label class="form-label">Unidade</label>
-          <input type="text" class="form-control" value="<?= htmlspecialchars($unidade_str) ?>" readonly>
         </div>
 
         <form action="" method="post">
+          <!-- Aqui o hidden para enviar o empresa_id -->
+          <input type="hidden" name="id_empresa" value="<?= htmlspecialchars($empresa_id_sessao) ?>">
+
+          <!-- Mostrar a unidade -->
+          <div class="mb-3">
+            <label class="form-label">Unidade</label>
+            <input type="text" class="form-control" value="<?= htmlspecialchars($unidade_str) ?>" readonly>
+          </div>
+
           <div class="mb-3">
             <label for="data" class="form-label">Data</label>
             <input type="date" name="data" class="form-control" required />
@@ -186,22 +190,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <div class="mb-3">
-            <label for="localizacao" class="form-label">Localização</label>
-            <?php if ($posto_selecionado): ?>
-              <input type="hidden" name="localizacao" value="<?= htmlspecialchars($posto_selecionado) ?>">
+            <label for="id_posto" class="form-label">Posto</label>
+            <?php if ($posto_selecionado):
+              $stmt_post = $con->prepare("SELECT id_posto FROM lista_postos WHERE nome = ? LIMIT 1");
+              $stmt_post->bind_param("s", $posto_selecionado);
+              $stmt_post->execute();
+              $res_post = $stmt_post->get_result();
+              $id_posto_val = ($res_post && $row_post = $res_post->fetch_assoc()) ? $row_post['id_posto'] : '';
+              $stmt_post->close();
+            ?>
+              <input type="hidden" name="id_posto" value="<?= htmlspecialchars($id_posto_val) ?>">
               <input type="text" class="form-control" value="<?= htmlspecialchars($posto_selecionado) ?>" readonly>
             <?php else: ?>
-              <select name="localizacao" class="form-select" required>
+              <select name="id_posto" class="form-select" required>
                 <option value="">Selecionar...</option>
-                <?php foreach ($postos as $posto): ?>
-                  <option value="<?= htmlspecialchars($posto) ?>" <?= $posto === $posto_selecionado ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($posto) ?>
-                  </option>
-                <?php endforeach; ?>
+                <?php
+                $escaped_postos = array_map([$con, 'real_escape_string'], $postos);
+                $sql_postos = "SELECT id_posto, nome FROM lista_postos WHERE nome IN ('" . implode("','", $escaped_postos) . "')";
+                $res_postos = $con->query($sql_postos);
+                if ($res_postos) {
+                  while ($row_posto = $res_postos->fetch_assoc()) {
+                    $selected = ($posto_selecionado == $row_posto['nome']) ? 'selected' : '';
+                    echo '<option value="' . htmlspecialchars($row_posto['id_posto']) . '" ' . $selected . '>' . htmlspecialchars($row_posto['nome']) . '</option>';
+                  }
+                }
+                ?>
               </select>
             <?php endif; ?>
           </div>
-
 
           <div class="mb-4">
             <label for="fatura" class="form-label">Fatura?</label>
@@ -216,11 +232,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="../html/index.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
           </div>
         </form>
-
       </div>
     </div>
   </div>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

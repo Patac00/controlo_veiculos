@@ -4,6 +4,7 @@ if (!isset($_SESSION['id_utilizador'])) {
     header("Location: ../login/login.php");
     exit();
 }
+
 include("../php/config.php");
 
 $id_user = $_SESSION['id_utilizador'];
@@ -17,130 +18,134 @@ $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 $empresa_id = $row['empresa_id'] ?? null;
 
-// Buscar unidades da empresa (array)
-$unidades = [];
-if ($empresa_id) {
-    $sql_unidades = "SELECT DISTINCT unidade FROM lista_postos WHERE empresa_id = ?";
-    $stmt = $con->prepare($sql_unidades);
-    $stmt->bind_param("i", $empresa_id);
-    $stmt->execute();
-    $res_unidades = $stmt->get_result();
-    while ($u = $res_unidades->fetch_assoc()) {
-        $unidades[] = $u['unidade'];
-    }
-}
-
-// Buscar postos e stocks associados à empresa
-$postos = [];
-if ($empresa_id) {
-    $sql_postos = "
-    SELECT 
-        p.id_posto, 
-        p.nome, 
-        p.unidade, 
-        p.local, 
-        p.capacidade,
-        0 AS litros_entrada, -- movimentos_stock não tem posto_id, valor fixo por agora
-        (
-            COALESCE((SELECT SUM(a.litros) FROM abastecimentos a), 0) +
-            COALESCE((SELECT SUM(b.litros) FROM bomba b), 0)
-        ) AS litros_saida
-
-    FROM lista_postos p
-    WHERE p.empresa_id = ?
-    ";
-
-    $stmt = $con->prepare($sql_postos);
-    $stmt->bind_param("i", $empresa_id);
-    $stmt->execute();
-    $result_postos = $stmt->get_result();
-    while ($row = $result_postos->fetch_assoc()) {
-        $litros_atuais = $row['litros_entrada'] - $row['litros_saida'];
-        $row['litros'] = max($litros_atuais, 0); // evita negativos
-        $postos[] = $row;
-    }
-}
-
-// Preço Litro Gasóleo com filtro da empresa do utilizador (baseado nas unidades)
-if (!empty($unidades)) {
-    $unidades_escaped = array_map(fn($u) => "'" . mysqli_real_escape_string($con, $u) . "'", $unidades);
-    $unidades_sql = implode(',', $unidades_escaped);
-    $sql = "SELECT preco_litro 
-            FROM fornecimentos_bomba 
-            WHERE unidade IN ($unidades_sql) AND tipo_combustivel = 'Gasóleo' 
-            ORDER BY data DESC 
-            LIMIT 1";
-} else {
-    $sql = "SELECT preco_litro FROM fornecimentos_bomba WHERE tipo_combustivel = 'Gasóleo' ORDER BY data DESC LIMIT 1";
-}
-
-$result = mysqli_query($con, $sql);
-$preco = 'Erro -_-';
-if ($result && $row = mysqli_fetch_assoc($result)) {
-    $preco = number_format($row['preco_litro'], 2, ',', ' ') . ' €';
-}
-
-// Contar veículos ativos da empresa
-if ($empresa_id !== null) {
-    $sql = "SELECT COUNT(*) AS total_ativos FROM veiculos WHERE estado = 'Ativo' AND empresa_atual_id = ?";
-    $stmt = $con->prepare($sql);
-    $stmt->bind_param("i", $empresa_id);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res->fetch_assoc();
-    $total_ativos = $row['total_ativos'] ?? 0;
-} else {
-    $total_ativos = 0;
-}
-
-// Contar veículos em manutenção da empresa
-if ($empresa_id !== null) {
-    $sql = "SELECT COUNT(*) AS total_manutencao FROM veiculos WHERE estado = 'Manutenção' AND empresa_atual_id = ?";
-    $stmt = $con->prepare($sql);
-    $stmt->bind_param("i", $empresa_id);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res->fetch_assoc();
-    $veiculos_manutencao = $row['total_manutencao'] ?? 0;
-} else {
-    $veiculos_manutencao = 0;
-}
-
-// Buscar níveis de combustível para cada unidade
+// Buscar unidades da empresa
+// Stock combustível por unidade
 $nivel_combustivel_unidades = [];
 if (!empty($unidades)) {
-    $stmt = $con->prepare("SELECT litros FROM stock_combustivel WHERE localizacao = ? LIMIT 1");
+    $sql = "SELECT litros FROM stock_combustivel WHERE unidade = ? LIMIT 1";
+    $stmt = $con->prepare($sql);
     foreach ($unidades as $unidade) {
         $stmt->bind_param("s", $unidade);
         $stmt->execute();
         $res = $stmt->get_result();
-        $row = $res ? $res->fetch_assoc() : null;
+        $row = $res->fetch_assoc();
         $nivel_combustivel_unidades[$unidade] = $row['litros'] ?? 0;
     }
     $stmt->close();
 }
 
-// Capacidade total fixa (podes alterar para buscar de base de dados se existir)
+// Buscar postos e stocks
+
+$postos = [];
+if ($empresa_id) {
+    $sql = "
+        SELECT 
+            p.id_posto, 
+            p.nome, 
+            p.unidade, 
+            p.local,
+            p.capacidade,
+
+            COALESCE((
+                SELECT SUM(m.litros) 
+                FROM movimentos_stock m
+                WHERE m.id_posto = p.id_posto
+            ), 0) AS litros_entrada,
+
+            (
+                COALESCE((SELECT SUM(a.litros) FROM abastecimentos a WHERE a.id_posto = p.id_posto), 0) +
+                COALESCE((SELECT SUM(b.quantidade) FROM bomba b WHERE b.id_posto = p.id_posto), 0)
+            ) AS litros_saida
+        FROM lista_postos p
+        WHERE p.empresa_id = ?
+    ";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $empresa_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $litros_atuais = $row['litros_entrada'] - $row['litros_saida'];
+        $row['litros'] = max($litros_atuais, 0);
+        $postos[] = $row;
+    }
+}
+
+
+
+// Preço litro gasóleo
+$preco = 'Erro -_-';
+if (!empty($unidades)) {
+    $in_clause = implode(',', array_fill(0, count($unidades), '?'));
+    $tipos = str_repeat('s', count($unidades));
+    $sql = "SELECT preco_litro FROM fornecimentos_bomba WHERE unidade IN ($in_clause) AND tipo_combustivel = 'Gasóleo' ORDER BY data DESC LIMIT 1";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param($tipos, ...$unidades);
+} else {
+    $sql = "SELECT preco_litro FROM fornecimentos_bomba WHERE tipo_combustivel = 'Gasóleo' ORDER BY data DESC LIMIT 1";
+    $stmt = $con->prepare($sql);
+}
+$stmt->execute();
+$res = $stmt->get_result();
+if ($res && $row = $res->fetch_assoc()) {
+    $preco = number_format($row['preco_litro'], 2, ',', ' ') . ' €';
+}
+
+// Veículos ativos
+$total_ativos = 0;
+if ($empresa_id) {
+    $sql = "SELECT COUNT(*) AS total FROM veiculos WHERE estado = 'Ativo' AND empresa_atual_id = ?";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $empresa_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+    $total_ativos = $row['total'] ?? 0;
+}
+
+// Veículos em manutenção
+$veiculos_manutencao = 0;
+if ($empresa_id) {
+    $sql = "SELECT COUNT(*) AS total FROM veiculos WHERE estado = 'Manutenção' AND empresa_atual_id = ?";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $empresa_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+    $veiculos_manutencao = $row['total'] ?? 0;
+}
+
+// Stock combustível por unidade
+$nivel_combustivel_unidades = [];
+if (!empty($unidades)) {
+    $sql = "SELECT litros FROM stock_combustivel WHERE id_posto = ? LIMIT 1";
+    $stmt = $con->prepare($sql);
+    foreach ($unidades as $id_posto) {
+        $stmt->bind_param("i", $id_posto);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        $nivel_combustivel_unidades[$id_posto] = $row['litros'] ?? 0;
+    }
+    $stmt->close();
+}
+
+
+// Capacidade total
 $capacidade_total = 10000;
 
-// Total abastecimentos do mês atual da empresa (adaptei com filtro empresa_id)
-if ($empresa_id !== null) {
-    $sql = "SELECT COUNT(*) AS total 
-            FROM abastecimentos 
-            WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) 
-            AND YEAR(data_abastecimento) = YEAR(CURDATE())
-            AND id_empresa = ?";
+// Total abastecimentos do mês
+$total_mes = 0;
+if ($empresa_id) {
+    $sql = "SELECT COUNT(*) AS total FROM abastecimentos WHERE MONTH(data_abastecimento) = MONTH(CURDATE()) AND YEAR(data_abastecimento) = YEAR(CURDATE()) AND id_empresa = ?";
     $stmt = $con->prepare($sql);
     $stmt->bind_param("i", $empresa_id);
     $stmt->execute();
     $res = $stmt->get_result();
     $row = $res->fetch_assoc();
     $total_mes = $row['total'] ?? 0;
-} else {
-    $total_mes = 0;
 }
 
-// Nome do mês em português
+// Mês atual
 setlocale(LC_TIME, 'pt_PT.UTF-8');
 $formatter = new IntlDateFormatter('pt_PT', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
 $formatter->setPattern('MMMM');
@@ -149,6 +154,7 @@ $mes_atual = $formatter->format(new DateTime());
 $dados_unidades_json = json_encode($nivel_combustivel_unidades);
 $capacidade_total_js = $capacidade_total;
 ?>
+
 
 <!DOCTYPE html>
 <html
@@ -481,7 +487,6 @@ $capacidade_total_js = $capacidade_total;
           <!-- Card Combustível -->
           <div class="container mt-5">
             <h1 class="mb-4">Postos Associados</h1>
-
             <?php if (count($postos) === 0): ?>
               <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
             <?php else: ?>
@@ -494,18 +499,17 @@ $capacidade_total_js = $capacidade_total;
                     <div class="card shadow-sm h-100">
                       <div class="card-body d-flex flex-column justify-content-between">
                         <div>
-                          <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
-                            <a class="btn btn-sm btn-outline-primary" href="..\abastecimentos\fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
+                          <div class="card-title d-flex align-items-start justify-content-between mb-2">
+                            <h2 class="h5 mb-0"><?= htmlspecialchars($posto['nome']) ?></h2>
+                            <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">+ detalhes</a>
                           </div>
-                          <div class="progress mb-2" style="height: 8px; background-color: #eee;">
-                            <div class="progress-bar" style="width: <?= $percentagem ?>%; background-color: <?= $cor ?>;"></div>
+
+                          <strong>Nível de Combustível:</strong> <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> litros<br />
+
+                          <div class="progress-bar" style="background-color: #eee;">
+                            <div class="progress" style="width: <?= $percentagem ?>%; background-color: <?= $cor ?>;"></div>
                           </div>
-                          <small class="text-muted"><?= $percentagem ?>% da capacidade total</small>
-                        </div>
-                        <div class="mt-3 small text-muted">
-                          <?= htmlspecialchars($posto['unidade']) ?> · <?= htmlspecialchars($posto['local']) ?> <br>
-                          <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= $posto['capacidade'] ?? 0 ?> L
+                          <small><?= $percentagem ?>% da capacidade total</small>
                         </div>
                       </div>
                     </div>
@@ -514,6 +518,7 @@ $capacidade_total_js = $capacidade_total;
               </div>
             <?php endif; ?>
           </div>
+
 
           <!-- Botões de Relatórios (à direita do card) -->
           <div class="col-md-4 mb-4">
