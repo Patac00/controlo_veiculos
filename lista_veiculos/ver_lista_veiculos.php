@@ -17,7 +17,7 @@ while ($r = mysqli_fetch_row($resT)) $tipos[] = $r[0];
 
 // Carrega lista de empresas para filtro
 $empresas = [];
-$resE = mysqli_query($con, "SELECT id_empresa, nome FROM empresas ORDER BY nome");
+$resE = mysqli_query($con, "SELECT empresa_id, nome FROM empresas ORDER BY nome");
 while ($e = mysqli_fetch_assoc($resE)) $empresas[] = $e;
 
 // Recolhe filtros do GET  
@@ -51,7 +51,7 @@ $where = count($filtros) ? 'WHERE ' . implode(' AND ', $filtros) : '';
 $sql = "
   SELECT v.*, e.nome AS nome_empresa
   FROM veiculos v
-  LEFT JOIN empresas e ON v.empresa_atual_id = e.id_empresa
+  LEFT JOIN empresas e ON v.empresa_atual_id = e.empresa_id
   {$where}
   ORDER BY v.matricula
 ";

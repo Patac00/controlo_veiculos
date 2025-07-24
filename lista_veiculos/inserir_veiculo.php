@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Buscar empresas
 $empresas = [];
-$empresas_sql = "SELECT id_empresa, nome FROM empresas ORDER BY nome ASC";
+$empresas_sql = "SELECT empresa_id, nome FROM empresas ORDER BY nome ASC";
 $empresas_result = mysqli_query($con, $empresas_sql);
 if ($empresas_result) {
     while ($row = mysqli_fetch_assoc($empresas_result)) {
@@ -201,7 +201,7 @@ if ($grupos_result) {
         <select name="empresa_atual_id" required>
             <option value="">-- Selecionar --</option>
             <?php foreach ($empresas as $empresa): ?>
-                <option value="<?= $empresa['id_empresa'] ?>"><?= htmlspecialchars($empresa['nome']) ?></option>
+                <option value="<?= $empresa['empresa_id'] ?>"><?= htmlspecialchars($empresa['nome']) ?></option>
             <?php endforeach; ?>
         </select>
 

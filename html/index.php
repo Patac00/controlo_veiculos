@@ -170,19 +170,33 @@ $capacidade_total_js = (int)$capacidade_total;
         <style>
         body { font-family: Arial, sans-serif; margin: 20px; }  
         .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; width: 300px; }
-        .progress-bar {
-            background-color: #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-            height: 20px;
-            width: 100%;
-        }
-        .progress {
-            background-color: #4caf50;
-            height: 100%;
-            width: 0;
-            transition: width 0.5s ease;
-        }
+.bg-verde {
+  background-color: #28a745 !important;
+}
+
+.bg-laranja {
+  background-color: #fd7e14 !important;
+}
+
+.bg-vermelho {
+  background-color: #dc3545 !important;
+}
+
+.progress {
+  background-color: #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  border-radius: 12px;
+  transition: width 0.6s ease;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.05));
+}
+
     </style>
   </head>
 
@@ -345,28 +359,18 @@ $capacidade_total_js = (int)$capacidade_total;
                         <span class="align-middle">Meu Perfil</span>
                       </a>
                     </li>
-                    <li>
+                    <!--<li>
                       <a class="dropdown-item" href="#">
                         <i class="bx bx-cog me-2"></i>
                         <span class="align-middle">Settings</span>
                       </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="#">
-                        <span class="d-flex align-items-center align-middle">
-                          <i class="flex-shrink-0 bx bx-credit-card me-2"></i>
-                          <span class="flex-grow-1 align-middle">Billing</span>
-                          <span class="flex-shrink-0 badge badge-center rounded-pill bg-danger w-px-20 h-px-20">4</span>
-                        </span>
-                      </a>
-                    </li>
+                    </li>-->
                     <li>
                       <div class="dropdown-divider"></div>
                     </li>
                     <li>
-                      <a class="dropdown-item" href="auth-login-basic.php">
-                        <i class="bx bx-power-off me-2"></i>
-                        <span class="align-middle">Log Out</span>
+                      <a href="../php/logout.php" class="btn btn-danger w-100">
+                        <i class="bx bx-log-out"></i> Logout
                       </a>
                     </li>
                   </ul>
@@ -377,193 +381,151 @@ $capacidade_total_js = (int)$capacidade_total;
           <div class="container-xxl flex-grow-1 container-p-y">
           <div class="row">
 
-        <!-- Card 1 -->
-        <div class="col-md-4 mb-4">
-          <div class="card">
-            <div class="card-body">
-              <div class="card-title d-flex align-items-start justify-content-between">
-                <div class="avatar flex-shrink-0">
-                  <img src="../assets/img/icons/unicons/chart-success.png" alt="chart success" class="rounded" />
-                </div>
-                <div class="dropdown">
-                  <button class="btn p-0" type="button" id="cardOpt1" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <i class="bx bx-dots-vertical-rounded"></i>
-                  </button>
-                  <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt1">
-                    <a class="dropdown-item" href="../lista_veiculos\ver_lista_veiculos.php">+ detalhes</a>
-                  </div>
-                </div>
-              </div>
-              <span class="fw-semibold d-block mb-1">Nº Veículos Ativos</span>
-              <h3 class="card-title mb-2"><?= $total_ativos ?></h3>
-              <small class="text-info fw-semibold">
-        <i class="bx bx-car"></i> Frota ativa e registada
-      </small>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 2 -->
-        <div class="col-md-4 mb-4">
-          <div class="card">
-            <div class="card-body">
-              <div class="card-title d-flex align-items-start justify-content-between">
-                <div class="avatar flex-shrink-0">
-                  <img src="../assets/img/icons/unicons/chart-success.png" alt="chart success" class="rounded" />
-                </div>
-                <div class="dropdown">
-                  <button class="btn p-0" type="button" id="cardOpt2" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <i class="bx bx-dots-vertical-rounded"></i>
-                  </button>
-                  <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt2">
-                    <a class="dropdown-item" href="#">View More</a>
-                    <a class="dropdown-item" href="#">Delete</a>
-                  </div>
-                </div>
-              </div>
-              <span class="fw-semibold d-block mb-1">Nº Abastecimentos este mês</span>
-              <h3 class="card-title mb-2"><?= $total_mes ?></h3>
-              <small class="text-muted"><?= ucfirst($mes_atual) ?></small>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="col-md-4 mb-4">
-          <div class="card">
-            <div class="card-body">
-              <div class="card-title d-flex align-items-start justify-content-between">
-                <div class="avatar flex-shrink-0">
-                  <img src="../assets/img/icons/unicons/wallet-info.png" alt="Credit Card" class="rounded" />
-                </div>
-                <div class="dropdown">
-                  <button class="btn p-0" type="button" id="cardOpt3" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <i class="bx bx-dots-vertical-rounded"></i>
-                  </button>
-                  <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt3">
-                    <a class="dropdown-item" href="#">+ Detalhes</a>
-                  </div>
-                </div>
-              </div>
-                <span>Nº Veículos em manutenção</span>
-                <h3 class="card-title text-nowrap mb-1"><?php echo $veiculos_manutencao; ?></h3>
-                <small class="text-warning fw-semibold"><i class="bx bx-wrench"></i> em manutenção</small>
-              </div>
-            </div>
-          </div>
-        </div>
         <div class="row mb-4">
-
-          <!-- Card Combustível -->
-        <div class="container mt-5">
-  <h1 class="mb-4">Postos Associados</h1>
-
-  <?php if (count($postos) === 0): ?>
-    <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
-  <?php else: ?>
-    <div class="row">
-      <?php foreach ($postos as $posto): 
-        $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
-        $percentagem = min(100, max(0, $percentagem));
-        $cor = ($percentagem > 70) ? 'bg-success' : (($percentagem > 30) ? 'bg-warning' : 'bg-danger');
-      ?>
-        <div class="col-md-4 mb-4">
-          <div class="card shadow-sm h-100">
-            <div class="card-body d-flex flex-column justify-content-between">
-              <div>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
-                  <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
+      <!-- Card 1 - Veículos Ativos -->
+            <div class="col-md-4 mb-4">
+              <div class="card">
+                <div class="card-body">
+                  <div class="card-title d-flex align-items-start justify-content-between">
+                    <div class="avatar flex-shrink-0">
+                      <img src="../assets/img/icons/unicons/chart-success.png" alt="chart success" class="rounded" />
+                    </div>
+                    <div class="dropdown">
+                      <button class="btn p-0" type="button" id="cardOpt1" data-bs-toggle="dropdown">
+                        <i class="bx bx-dots-vertical-rounded"></i>
+                      </button>
+                      <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item" href="../lista_veiculos/ver_lista_veiculos.php">+ detalhes</a>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="fw-semibold d-block mb-1">Veículos Ativos</span>
+                  <h3 class="card-title mb-2"><?= $total_ativos ?></h3>
+                  <small class="text-info fw-semibold"><i class="bx bx-car"></i> Frota ativa e registada</small>
                 </div>
+              </div>
+            </div>
 
-                <div class="progress mb-2" style="height: 20px; background-color: #ffffffff;">
-                  <div class="progress-bar <?= $cor ?>" role="progressbar" style="width: <?= max(5, $percentagem) ?>%;">
-                    <?= $percentagem ?>%
+            <!-- Card 2 - Abastecimentos -->
+            <div class="col-md-4 mb-4">
+              <div class="card">
+                <div class="card-body">
+                  <div class="card-title d-flex align-items-start justify-content-between">
+                    <div class="avatar flex-shrink-0">
+                      <img src="../assets/img/icons/unicons/chart-success.png" alt="chart success" class="rounded" />
+                    </div>
+                    <div class="dropdown">
+                      <button class="btn p-0" type="button" id="cardOpt2" data-bs-toggle="dropdown">
+                        <i class="bx bx-dots-vertical-rounded"></i>
+                      </button>
+                      <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item" href="#">Ver mais</a>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="fw-semibold d-block mb-1">Abastecimentos este mês</span>
+                  <h3 class="card-title mb-2"><?= $total_mes ?></h3>
+                  <small class="text-muted"><?= ucfirst($mes_atual) ?></small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3 - Em Manutenção -->
+            <div class="col-md-4 mb-4">
+              <div class="card">
+                <div class="card-body">
+                  <div class="card-title d-flex align-items-start justify-content-between">
+                    <div class="avatar flex-shrink-0">
+                      <img src="../assets/img/icons/unicons/wallet-info.png" alt="wallet info" class="rounded" />
+                    </div>
+                    <div class="dropdown">
+                      <button class="btn p-0" type="button" id="cardOpt3" data-bs-toggle="dropdown">
+                        <i class="bx bx-dots-vertical-rounded"></i>
+                      </button>
+                      <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item" href="#">+ Detalhes</a>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="fw-semibold d-block mb-1">Veículos em manutenção</span>
+                  <h3 class="card-title mb-2"><?= $veiculos_manutencao ?></h3>
+                  <small class="text-warning fw-semibold"><i class="bx bx-wrench"></i> Em manutenção</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+         <div class="container mt-5">
+          <h1 class="mb-4">Postos Associados</h1>
+          <?php if (count($postos) === 0): ?>
+            <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
+          <?php else: ?>
+            <div class="row">
+              <?php foreach ($postos as $posto): 
+                $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
+                $percentagem = min(100, max(0, $percentagem));
+                $cor = ($percentagem > 70) ? 'bg-success' : (($percentagem > 30) ? 'bg-warning' : 'bg-danger');
+              ?>
+                <div class="col-md-4 mb-4">
+                  <div class="card shadow-sm h-100">
+                    <div class="card-body d-flex flex-column justify-content-between">
+                      <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
+                          <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
+                        </div>
+
+                        <div class="progress mb-2" style="height: 24px; border-radius: 12px; overflow: hidden;">
+                          <div class="progress-bar <?= $cor ?>" style="width: <?= $percentagem ?>%; min-width: 40px; font-weight: 600; border-radius: 12px; transition: width 0.6s ease; background-image: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(0,0,0,0.05));">
+                            <?= $percentagem ?>%
+                          </div>
+                        </div>
+
+                        <small class="text-muted">
+                          <?= $percentagem ?>% da capacidade total (<?= number_format($posto['capacidade'], 0, ',', '.') ?> L)
+                        </small>
+                      </div>
+                      <div class="mt-3 small text-muted">
+                        <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= $posto['capacidade'] ?? 0 ?> L
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <small class="text-muted"><?= $percentagem ?>% da capacidade total (<?= number_format($posto['capacidade'], 0, ',', '.') ?> L)</small>
-              </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
 
-              <div class="mt-3 small text-muted">
-                <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= number_format($posto['capacidade'] ?? 0, 0, ',', '.') ?> L
+          <div class="row mt-4">
+            <!-- Relatórios -->
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                  <h5 class="mb-3">Relatórios</h5>
+                  <a href="../relatorios/relt_mensal.php" class="btn btn-primary mb-2 w-100">
+                    <i class="bx bx-calendar"></i> Mensal
+                  </a>
+                  <a href="../relatorios/relt_veiculo.php" class="btn btn-secondary w-100">
+                    <i class="bx bx-car"></i> Por Veículo
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preço Gasóleo -->
+            <div class="col-md-6 mb-4">
+              <div class="card h-100 shadow rounded-4 border-0">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
+                  <div class="mb-3 text-primary">
+                    <i class="fas fa-gas-pump fa-2x"></i>
+                  </div>
+                  <h6 class="text-muted mb-1">Preço Litro Gasóleo</h6>
+                  <h3 class="fw-bold text-dark"><?= $preco ?></h3>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-</div>
 
-<div class="container mt-5">
-  <h1 class="mb-4">Postos Associados</h1>
-  <?php if (count($postos) === 0): ?>
-    <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
-  <?php else: ?>
-    <div class="row">
-      <?php foreach ($postos as $posto): 
-        $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
-        $percentagem = min(100, max(0, $percentagem));
-        $cor = ($percentagem > 70) ? 'bg-success' : (($percentagem > 30) ? 'bg-warning' : 'bg-danger');
-      ?>
-        <div class="col-md-4 mb-4">
-          <div class="card shadow-sm h-100">
-            <div class="card-body d-flex flex-column justify-content-between">
-              <div>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
-                  <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
-                </div>
-
-                <div class="progress mb-2" style="height: 20px; background-color: #dee2e6;">
-                  <div class="progress-bar <?= $cor ?>" style="width: <?= $percentagem ?>%; min-width: 30px;"></div>
-                </div>
-                <small class="text-muted">
-                  <?= $percentagem ?>% da capacidade total (<?= number_format($posto['capacidade'], 0, ',', '.') ?> L)
-                </small>
-              </div>
-              <div class="mt-3 small text-muted">
-                <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= $posto['capacidade'] ?? 0 ?> L
-              </div>
-            </div>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-</div>
-
-
-
-
-          <!-- Botões de Relatórios (à direita do card) -->
-          <div class="col-md-4 mb-4">
-            <div class="card h-100">
-              <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                <h5 class="mb-3">Relatórios</h5>
-                <a href="../relatorios/relt_mensal.php" class="btn btn-primary mb-2 w-100">
-                  <i class="bx bx-calendar"></i> Mensal
-                </a>
-                <a href="../relatorios/relt_veiculo.php" class="btn btn-secondary w-100">
-                  <i class="bx bx-car"></i> Por Veículo
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <!-- Ver preço gasóleo ao Litro -->
-          <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow rounded-4 border-0">
-              <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
-                <div class="mb-3 text-primary">
-                  <i class="fas fa-gas-pump fa-2x"></i>
-                </div>
-                <h6 class="text-muted mb-1">Preço Litro Gasóleo</h6>
-                <h3 class="fw-bold text-dark"><?php echo $preco; ?></h3>
-              </div>
-            </div>
-          </div>
-        </div>
       <div class="layout-overlay layout-menu-toggle"></div>
     </div>
     <script src="../assets/vendor/libs/jquery/jquery.js"></script>

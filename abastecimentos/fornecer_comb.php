@@ -39,6 +39,8 @@ $stmt_user->close();
 $res = mysqli_query($con, "SELECT DISTINCT nome FROM tipo_combustivel");
 while ($row = mysqli_fetch_assoc($res)) {
     $tipos[] = $row['nome'];
+    $tipo_combustivel_default = $tipos[0] ?? '';
+
 }
 
 // Buscar postos associados à empresa
@@ -188,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form action="" method="post">
           <!-- Aqui o hidden para enviar o empresa_id -->
-          <input type="hidden" name="empresa_nome" value="<?= htmlspecialchars($empresa_id_sessao) ?>">
+          <input type="hidden" name="empresa_id" value="<?= htmlspecialchars($empresa_id_sessao) ?>">
 
           <!-- Mostrar a unidade -->
           <div class="mb-3">
@@ -198,16 +200,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div class="mb-3">
             <label for="data" class="form-label">Data</label>
-            <input type="date" name="data" class="form-control" required />
+            <input type="date" name="data" class="form-control" value="<?= date('Y-m-d') ?>" required />
           </div>
 
           <div class="mb-3">
             <label for="tipo_combustivel" class="form-label">Tipo de Combustível</label>
             <select name="tipo_combustivel" class="form-select" required>
-              <option value="">Selecionar...</option>
-              <?php foreach ($tipos as $tipo): ?>
-                <option value="<?= htmlspecialchars($tipo) ?>"><?= htmlspecialchars($tipo) ?></option>
-              <?php endforeach; ?>
+            <option value="">Selecionar...</option>
+            <?php foreach ($tipos as $tipo): ?>
+              <option value="<?= htmlspecialchars($tipo) ?>" <?= $tipo === $tipo_combustivel_default ? 'selected' : '' ?>>
+                <?= htmlspecialchars($tipo) ?>
+              </option>
+            <?php endforeach; ?>
+
             </select>
           </div>
 

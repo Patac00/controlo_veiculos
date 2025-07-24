@@ -10,7 +10,7 @@ $matricula_antiga = "";
 $empresas = [];
 
 // Buscar empresas para dropdown
-$empresa_result = mysqli_query($con, "SELECT id_empresa, nome FROM empresas ORDER BY nome");
+$empresa_result = mysqli_query($con, "SELECT empresa_id, nome FROM empresas ORDER BY nome");
 while ($row = mysqli_fetch_assoc($empresa_result)) {
     $empresas[] = $row;
 }
@@ -200,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <select name="empresa_atual_id" required>
             <option value="">-- Selecionar Empresa --</option>
             <?php foreach ($empresas as $empresa): ?>
-                <option value="<?= $empresa['id_empresa'] ?>" <?= $veiculo['empresa_atual_id'] == $empresa['id_empresa'] ? 'selected' : '' ?>>
+                <option value="<?= $empresa['empresa_id'] ?>" <?= $veiculo['empresa_atual_id'] == $empresa['empresa_id'] ? 'selected' : '' ?>>
                     <?= htmlspecialchars($empresa['nome']) ?>
                 </option>
             <?php endforeach; ?>

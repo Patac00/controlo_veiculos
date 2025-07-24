@@ -15,14 +15,14 @@ $user = mysqli_fetch_assoc($result);
 // Buscar nome da empresa
 $empresa_nome = '';
 if ($user && $user['empresa_id']) {
-    $sql_emp = "SELECT nome FROM empresas WHERE id_empresa = " . intval($user['empresa_id']);
+    $sql_emp = "SELECT nome FROM empresas WHERE empresa_id = " . intval($user['empresa_id']);
     $res_emp = mysqli_query($con, $sql_emp);
     $empresa = mysqli_fetch_assoc($res_emp);
     $empresa_nome = $empresa ? preg_replace('/\s+/', '', strtolower($empresa['nome'])) : '';
 }
 
 // Buscar empresas para select — garante que traz a coluna unidades!
-$sql_empresas = "SELECT id_empresa, nome, unidades FROM empresas ORDER BY nome";
+$sql_empresas = "SELECT empresa_id, nome, unidades FROM empresas ORDER BY nome";
 $result_empresas = mysqli_query($con, $sql_empresas);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Atualizar nome da empresa para o novo selecionado (para nome da foto)
     if ($empresa_id) {
-        $sql_emp = "SELECT nome FROM empresas WHERE id_empresa = $empresa_id";
+        $sql_emp = "SELECT nome FROM empresas WHERE empresa_id = $empresa_id";
         $res_emp = mysqli_query($con, $sql_emp);
         $empresa = mysqli_fetch_assoc($res_emp);
         $empresa_nome = $empresa ? preg_replace('/\s+/', '', strtolower($empresa['nome'])) : '';
@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 // Rewind para garantir que o while funciona bem mesmo após vários loops
                                 mysqli_data_seek($result_empresas, 0);
                                 while($empresa = mysqli_fetch_assoc($result_empresas)): ?>
-                                    <option value="<?= $empresa['id_empresa'] ?>" <?= ($empresa['id_empresa'] == $user['empresa_id']) ? 'selected' : '' ?>>
+                                    <option value="<?= $empresa['empresa_id'] ?>" <?= ($empresa['empresa_id'] == $user['empresa_id']) ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($empresa['nome']) ?>
                                         <?php if (!empty($empresa['unidades'])): ?>
                                             - Unidade <?= htmlspecialchars($empresa['unidades']) ?>

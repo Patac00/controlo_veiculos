@@ -44,7 +44,7 @@ $sql_abast = "
         v.Grupo
     FROM abastecimentos a
     JOIN veiculos v ON a.id_veiculo = v.id_veiculo
-    JOIN empresas e ON v.empresa_atual_id = e.id_empresa
+    JOIN empresas e ON v.empresa_atual_id = e.empresa_id
     JOIN utilizadores u ON a.id_utilizador = u.id_utilizador
     JOIN lista_postos p ON a.id_posto = p.id_posto
     $where_sql_abast
@@ -67,7 +67,7 @@ $sql_bomba = "
         v.Grupo
     FROM bomba b
     JOIN veiculos v ON b.id_veiculo = v.id_veiculo
-    JOIN empresas e ON v.empresa_atual_id = e.id_empresa
+    JOIN empresas e ON v.empresa_atual_id = e.empresa_id
     JOIN lista_postos p ON b.id_posto = p.id_posto
     LEFT JOIN motoristas m ON b.motorista = m.codigo_bomba
     $where_sql_bomba
