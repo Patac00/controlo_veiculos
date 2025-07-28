@@ -22,12 +22,31 @@ function normalizaMatricula($valor) {
 }
 
 function converteData($data) {
-    $partes = explode('/', $data);
-    if (count($partes) === 3) {
-        return $partes[2] . '-' . $partes[1] . '-' . $partes[0];
+    $data = str_replace('/', '-', $data);
+    $partes = explode('-', $data);
+
+    if (count($partes) !== 3) return $data; // formato inválido, retorna como está
+
+    // tenta detetar o formato
+    if (strlen($partes[0]) === 4) {
+        // YYYY-MM-DD
+        return $data;
+    } elseif (strlen($partes[2]) === 4) {
+        // DD-MM-YYYY ou MM-DD-YYYY — tenta adivinhar pelo valor do mês
+        $dia = (int)$partes[0];
+        $mes = (int)$partes[1];
+        if ($dia > 12) {
+            // claramente DD-MM-YYYY
+            return "{$partes[2]}-{$partes[1]}-{$partes[0]}";
+        } else {
+            // assume MM-DD-YYYY
+            return "{$partes[2]}-{$partes[0]}-{$partes[1]}";
+        }
     }
+
     return $data;
 }
+
 
 $dadosConvertidos = [];
 
@@ -91,7 +110,9 @@ if (isset($_POST['guardar']) && isset($_SESSION['dados_convertidos'])) {
         $id_veiculo = $veiculos[$matriculaLimpa] ?? "NULL";
 
         $unidade = intval($linha['unidade']);
-        $resP = $con->query("SELECT id_posto FROM lista_postos WHERE numero_bomba = $unidade");
+//        $resP = $con->query("SELECT id_posto FROM lista_postos WHERE numero_bomba = $unidade");
+        $resP = $con->query("SELECT id_posto FROM lista_postos WHERE id_posto = $unidade");
+
         $id_posto = $resP && $resP->num_rows > 0 ? $resP->fetch_assoc()['id_posto'] : "NULL";
 
         $data = converteData(mysqli_real_escape_string($con, $linha['data']));

@@ -7,6 +7,7 @@ if (!isset($_SESSION['id_utilizador'])) {
 include("../php/config.php");
 
 $msg = "";
+    
 
 // Se for POST, processar o registo
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -18,7 +19,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id_posto = intval($_POST['id_posto']);
     $litros = floatval($_POST['litros']);
     $preco_litro = floatval($_POST['preco_litro']);
-    $valor_total = $litros * $preco_litro;
     $id_tipo_combustivel = intval($_POST['id_tipo_combustivel']);
     $observacoes = isset($_POST['observacoes']) ? trim($_POST['observacoes']) : '';
 
@@ -33,24 +33,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         // Prepared statement para inserir
         $stmt = $con->prepare("INSERT INTO abastecimentos 
-        (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, id_tipo_combustivel, observacoes, valor_total) 
+        (id_veiculo, id_utilizador, data_abastecimento, km_registados, id_posto, litros, id_tipo_combustivel, observacoes, preco_litro) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
 
         if ($stmt === false) {
             $msg = "Erro na preparação da query: " . $con->error;
         } else {                    
-            $stmt->bind_param("iisiddids", 
-                $id_veiculo, 
-                $id_utilizador, 
-                $data_abastecimento, 
-                $km_registados, 
-                $id_posto, 
-                $litros, 
-                $id_tipo_combustivel, 
-                $observacoes, 
-                $valor_total
-            );
-
+                $stmt->bind_param("iisiddids", 
+                    $id_veiculo, 
+                    $id_utilizador, 
+                    $data_abastecimento, 
+                    $km_registados, 
+                    $id_posto, 
+                    $litros, 
+                    $id_tipo_combustivel, 
+                    $observacoes, 
+                    $preco_litro
+                );
+                
             if ($stmt->execute()) {
                 $msg = "Abastecimento registado com sucesso!";
             } else {
@@ -60,6 +61,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 }
+$valor_total = $litros * $preco_litro;
 
 // AJAX para obter último km antes da data selecionada
 if (isset($_GET['acao']) && $_GET['acao'] === 'obter_km' && isset($_GET['id_veiculo'])) {
