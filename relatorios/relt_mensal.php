@@ -6,10 +6,9 @@ if (!isset($_SESSION['id_utilizador'])) {
 }
 
 include("../php/config.php");
+require('../fpdf/fpdf.php');
 
 
-
-// --- Obter opções para filtros ---
 $anos = [];
 $grupos = [];
 $locais = [];
@@ -150,21 +149,37 @@ $data = DateTime::createFromFormat('Y-m', "$ano-$mes");
 if (!$data) $data = new DateTime();
 
 $nome_mes = $data->format('F \d\e Y');
-$traducoes = [];
+$traducoes =[
+    'January' => 'Janeiro',
+    'February' => 'Fevereiro',
+    'March' => 'Março',
+    'April' => 'Abril',
+    'May' => 'Maio',
+    'June' => 'Junho',
+    'July' => 'Julho',
+    'August' => 'Agosto',
+    'September' => 'Setembro',
+    'October' => 'Outubro',
+    'November' => 'Novembro',
+    'December' => 'Dezembro'];
 $nome_mes_pt = strtr($nome_mes, $traducoes);
 
+
 // Mostrar no topo do relatório
-echo "<h2>Relatório de Consumos - $nome_mes_pt</h2>";
+//echo "<h2>Relatório de Consumos - $nome_mes_pt</h2>";
 echo "<p>Preço médio por litro (movimentos_stock): <strong>" . number_format(array_sum($precos_medios)/count($precos_medios), 3, ',', '.') . " €</strong></p>";
 // Preço médio geral de movimentos_stock
 $preco_medio_comb = 0;
 if (count($precos_medios) > 0) {
     $preco_medio_comb = array_sum($precos_medios) / count($precos_medios);
 }
-
+$temFiltro = ($ano !== '' && $ano !== null) || 
+             ($mes !== '' && $mes !== null) || 
+             ($grupo !== '') || 
+             ($tipo !== '') || 
+             ($local !== '');
 ?>
  
-
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -221,7 +236,66 @@ if (count($precos_medios) > 0) {
         button:hover {
             background-color: #424446ff;
         }
+        .btn-voltar {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: #ff0000ff;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 30px;
+            text-decoration: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 999;
+            transition: 0.3s;
+        }
+        .btn-voltar:hover {
+            background-color: #5f6264ff;
+        }
+
+
+        @media print {
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 10mm !important;
+    font-size: 12pt !important;
+  }
+  a.btn-voltar, button, form, select, input, /* esconder botões e filtros */
+  button, form {
+    display: none !important;
+  }
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: avoid !important;
+  }
+  th, td {
+    border: 1px solid black !important;
+    padding: 6px 10px !important;
+    text-align: center !important;
+  }
+  th {
+    background-color: #ccc !important; /* torna header visível na impressão */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  h2, h3 {
+    page-break-after: avoid !important;
+  }
+  /* Forçar que linhas da tabela não quebrem no meio */
+  tr {
+    page-break-inside: avoid !important;
+  }
+  /* Evitar que quebre tabela entre páginas */
+  table, thead, tbody, tr, td, th {
+    page-break-inside: avoid !important;
+  }
+}
+
     </style>
+
+    
 </head>
 <body>
 
@@ -277,6 +351,20 @@ if (count($precos_medios) > 0) {
 </form>
 
 <a href="../html/index.php" class="btn-voltar">Voltar</a>
+<button onclick="exportTableToCSV('relatorio_consumos.csv')">Exportar CSV</button>
+
+<?php if ($temFiltro): ?>
+  <form method="get" action="relatorio_pdf_mensal.php" target="_blank" style="display:inline;">
+    <input type="hidden" name="ano" value="<?= htmlspecialchars($ano) ?>">
+    <input type="hidden" name="mes" value="<?= htmlspecialchars($mes) ?>">
+    <input type="hidden" name="grupo" value="<?= htmlspecialchars($grupo) ?>">
+    <input type="hidden" name="tipo" value="<?= htmlspecialchars($tipo) ?>">
+    <input type="hidden" name="local" value="<?= htmlspecialchars($local) ?>">
+    <button type="submit">Gerar PDF</button>
+  </form>
+<?php endif; ?>
+
+
 
 <?php if (empty($relatorio)): ?>
     <p><strong>Nenhum dado encontrado.</strong></p>
@@ -325,9 +413,53 @@ if (count($precos_medios) > 0) {
     <?php endforeach; ?>
 <?php endif; ?>
 
-<p><strong>Total Litros: <?= number_format($litros_total_geral, 2, ',', '.') ?> L</strong></p>
-<p><strong>Total €: <?= number_format($valor_total_geral, 2, ',', '.') ?> €</strong></p>
-<p><strong>Preço Médio por Litro (movimentos_stock): <?= number_format($preco_medio_comb, 3, ',', '.') ?> €/L</strong></p>
+<div style="text-align: right; font-family: Arial, sans-serif; margin: 15px 0; color: #00693e;">
+  <p style="margin: 4px 0; font-weight: 700; font-size: 1.1em;">
+    Total Litros: <span style="color: #004d26;"><?= number_format($litros_total_geral, 2, ',', '.') ?> L</span>
+  </p>
+  <p style="margin: 4px 0; font-weight: 700; font-size: 1.1em;">
+    Total €: <span style="color: #004d26;"><?= number_format($valor_total_geral, 2, ',', '.') ?> €</span>
+  </p>
+  <p style="margin: 4px 0; font-weight: 700; font-size: 1.1em;">
+    Preço Médio por Litro (movimentos_stock): <span style="color: #004d26;"><?= number_format($preco_medio_comb, 3, ',', '.') ?> €/L</span>
+  </p>
+</div>
+
+
+<script>
+function downloadCSV(csv, filename) {
+  const csvFile = new Blob([csv], { type: 'text/csv' });
+  const downloadLink = document.createElement('a');
+  downloadLink.download = filename;
+  downloadLink.href = window.URL.createObjectURL(csvFile);
+  downloadLink.style.display = 'none';
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
+
+function exportTableToCSV(filename) {
+  const rows = document.querySelectorAll('table tbody tr');
+  const headers = document.querySelectorAll('table thead tr th');
+  const csv = [];
+
+  // Header row
+  let headerRow = [];
+  headers.forEach(th => headerRow.push('"' + th.innerText.trim().replace(/"/g, '""') + '"'));
+  csv.push(headerRow.join(','));
+
+  // Data rows
+  rows.forEach(row => {
+    const cols = row.querySelectorAll('td');
+    let rowData = [];
+    cols.forEach(td => rowData.push('"' + td.innerText.trim().replace(/"/g, '""') + '"'));
+    csv.push(rowData.join(','));
+  });
+
+  downloadCSV(csv.join('\n'), filename);
+}
+</script>
+
 
 </body>
 </html>

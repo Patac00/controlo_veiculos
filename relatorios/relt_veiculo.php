@@ -247,10 +247,22 @@ if (isset($_GET['export_csv'])) {
             margin-bottom: 10px;
         }
         .btn-voltar {
-            float: left;
-            margin-bottom: 0px;
-            background-color: #e41212ff;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: #ff0000ff;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 30px;
+            text-decoration: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 999;
+            transition: 0.3s;
         }
+        .btn-voltar:hover {
+            background-color: #5f6264ff;
+        }
+
         .btn-pdf {
             float: right;
             margin-bottom: 0px;

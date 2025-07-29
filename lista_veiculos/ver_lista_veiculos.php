@@ -9,10 +9,9 @@ include("../php/config.php");
 include_once("../funcoes/funcoes_medias.php");
 $con->set_charset("utf8mb4");
 
-
 // Carrega opções de filtros para "tipo"
 $tipos = [];
-$resT = mysqli_query($con, "SELECT DISTINCT tipo FROM veiculos");
+$resT = mysqli_query($con, "SELECT DISTINCT Tipo FROM veiculos");
 while ($r = mysqli_fetch_row($resT)) $tipos[] = $r[0];
 
 // Carrega lista de empresas para filtro
@@ -28,26 +27,23 @@ if (!empty($_GET['matricula'])) {
 }
 if (!empty($_GET['descricao'])) {
     $d = mysqli_real_escape_string($con, $_GET['descricao']);
-    $filtros[] = "v.descricao LIKE '%{$d}%'";
+    $filtros[] = "v.Descricao LIKE '%{$d}%'";
 }
 if (!empty($_GET['empresa_atual_id'])) {
-    $e = mysqli_real_escape_string($con, $_GET['empresa_atual_id']);
-    $filtros[] = "v.empresa_atual_id = '{$e}'";
+    $e = (int)$_GET['empresa_atual_id'];
+    $filtros[] = "v.empresa_atual_id = {$e}";
 }
-
 if (!empty($_GET['tipo'])) {
     $t = mysqli_real_escape_string($con, $_GET['tipo']);
-    $filtros[] = "v.tipo = '{$t}'";
+    $filtros[] = "v.Tipo = '{$t}'";
 }
 if (!empty($_GET['grupo'])) {
     $g = mysqli_real_escape_string($con, $_GET['grupo']);
-    $filtros[] = "v.grupo LIKE '%{$g}%'";
+    $filtros[] = "v.Grupo LIKE '%{$g}%'";
 }
 
-// Monta o WHERE
 $where = count($filtros) ? 'WHERE ' . implode(' AND ', $filtros) : '';
 
-// Query principal com JOIN para obter nome da empresa
 $sql = "
   SELECT v.*, e.nome AS nome_empresa
   FROM veiculos v
@@ -57,8 +53,6 @@ $sql = "
 ";
 
 $result = mysqli_query($con, $sql);
-
-
 ?>
 
 <!DOCTYPE html>
@@ -72,21 +66,18 @@ $result = mysqli_query($con, $sql);
       background-color: #f2f2f2;
       margin: 30px;
     }
-
     h2 {
       color: #333;
       text-align: center;
       margin-bottom: 10px;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
       background-color: white;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
       margin-bottom: 15px;
     }
-
     th, td {
       padding: 8px 12px;
       text-align: center;
@@ -94,12 +85,10 @@ $result = mysqli_query($con, $sql);
       font-size: 14px;
       white-space: nowrap;
     }
-
     thead tr.filters th {
       background-color: #e9f1ff;
       padding: 6px 8px;
     }
-
     thead tr.filters input,
     thead tr.filters select {
       font-size: 14px;
@@ -110,17 +99,14 @@ $result = mysqli_query($con, $sql);
       border: 1px solid #ccc;
       transition: border-color 0.3s;
     }
-
     thead tr.filters input:focus,
     thead tr.filters select:focus {
       border-color: #007BFF;
       outline: none;
     }
-
     tbody tr:hover {
       background-color: #f1f1f1;
     }
-
     .edit-btn {
       text-decoration: none;
       background-color: #007BFF;
@@ -134,18 +120,14 @@ $result = mysqli_query($con, $sql);
       gap: 6px;
       transition: background-color 0.3s;
     }
-
     .edit-btn:hover {
       background-color: #0056b3;
     }
-
-    /* Ícone lápis simples */
     .edit-btn svg {
       width: 16px;
       height: 16px;
       fill: white;
     }
-
     button, a.btn-voltar, a.export-btn {
       background-color: #007BFF;
       color: white;
@@ -159,33 +141,26 @@ $result = mysqli_query($con, $sql);
       display: inline-block;
       transition: background-color 0.3s;
     }
-
     button:hover, a.btn-voltar:hover, a.export-btn:hover {
       background-color: #0056b3;
     }
-
     .filter-actions {
       text-align: right;
       padding-right: 0;
     }
-
     .btn-voltar {
       margin-bottom: 15px;
       font-weight: 600;
     }
-
-    /* Paginação simples */
     .pagination {
       margin-top: 12px;
       text-align: center;
     }
-
     .pagination button {
       margin: 0 3px;
       font-weight: 600;
       padding: 6px 12px;
     }
-
   </style>
 </head>
 <body>
@@ -204,7 +179,7 @@ $result = mysqli_query($con, $sql);
           <select name="empresa_atual_id">
             <option value="">Empresa...</option>
             <?php foreach($empresas as $emp): ?>
-              <option value="<?= $emp['id_empresa'] ?>" <?= (($_GET['empresa_atual_id'] ?? '') == $emp['id_empresa'] ? 'selected' : '') ?>>
+              <option value="<?= $emp['empresa_id'] ?>" <?= (($_GET['empresa_atual_id'] ?? '') == $emp['empresa_id'] ? 'selected' : '') ?>>
                 <?= htmlspecialchars($emp['nome']) ?>
               </option>
             <?php endforeach ?>
@@ -219,26 +194,29 @@ $result = mysqli_query($con, $sql);
             <?php endforeach ?>
           </select>
         </th>
-        <th colspan="9" class="filter-actions">
+        <th colspan="10" class="filter-actions">
           <button type="submit">Filtrar</button>
           <a href="ver_lista_veiculos.php">Limpar</a>
           <a href="#" class="export-btn" onclick="exportTableToCSV('veiculos.csv'); return false;">Exportar CSV</a>
         </th>
       </tr>
-      <tr>
-        <th>Matrícula</th>
-        <th>Descrição</th>
-        <th>Empresa</th>
-        <th>Grupo</th>
-        <th>Tipo</th>
-        <th>Estado</th>
-        <th>km totais</th>
-        <th>Horas totais</th>
-        <th>Média Geral</th>
-        <th>Média 3 Meses</th>
-        <th>Média 12 Meses</th>
-        <th>Ações</th>  
-      </tr>
+    <tr>
+      <th>ID</th>
+      <th>Matrícula</th>
+      <th>Descrição</th>
+      <th>Empresa Atual</th>
+      <th>Tipo</th>
+      <th>Grupo</th>
+      <th>Relatório</th>
+      <th>Critério</th>
+      <th>Abastecimentos</th>
+      <th>Medida</th>
+      <th>KM Atual</th>
+      <th>Horas Atual</th>
+      <th>Estado</th>
+      <th>Capacidade Tanque</th>
+      <th>Ações</th>
+    </tr>
     </thead>
     <tbody>
       <?php 
@@ -247,34 +225,29 @@ $result = mysqli_query($con, $sql);
           $rows[] = $row;
       }
       ?>
-      <?php foreach ($rows as $index => $row): 
-        $id = $row['id_veiculo'];
-        $tipo = $row['Tipo'];
+<?php foreach ($rows as $index => $row): ?>
+  <tr class="data-row">
+    <td><?= $row['id_veiculo'] ?></td>
+    <td><?= $row['matricula'] ?></td>
+    <td><?= $row['Descricao'] ?></td>
+    <td><?= $row['nome_empresa'] ?></td>
+    <td><?= $row['Tipo'] ?></td>
+    <td><?= $row['Grupo'] ?></td>
+    <td><?= $row['relatorio'] ?></td>
+    <td><?= $row['criterio'] ?></td>
+    <td><?= $row['abastecimentos'] ?></td>
+    <td><?= $row['medida'] ?></td>
+    <td><?= $row['km_atual'] ?></td>
+    <td><?= $row['horas_atual'] ?></td>
+    <td><?= $row['estado'] ?></td>
+    <td><?= $row['capacidade_tanque'] ?></td>
+    <td>
+      <a href="editar.php?id=<?= $row['id_veiculo'] ?>" class="btn btn-sm btn-warning">Editar</a>
+      <a href="eliminar.php?id=<?= $row['id_veiculo'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Tens a certeza que queres eliminar?')">Eliminar</a>
+    </td>
+  </tr>
+<?php endforeach; ?>
 
-        $mediaGeral = calcularMedia($con, $id, $tipo);
-        $media3meses = calcularMedia($con, $id, $tipo, date('Y-m-d', strtotime('-3 months')));
-        $media12meses = calcularMedia($con, $id, $tipo, date('Y-m-d', strtotime('-12 months')));
-      ?>
-      <tr class="data-row" <?= $index >= 10 ? 'style="display:none"' : '' ?>>
-        <td><?= htmlspecialchars($row['matricula'] ?? '') ?></td>
-        <td><?= htmlspecialchars($row['Descricao'] ?? '') ?></td>
-        <td><?= htmlspecialchars($row['nome_empresa'] ?? '') ?></td>
-        <td><?= htmlspecialchars($row['Grupo'] ?? '') ?></td>
-        <td><?= htmlspecialchars($row['Tipo'] ?? '') ?></td>
-        <td><?= htmlspecialchars($row['estado'] ?? '') ?></td>
-        <td><?= htmlspecialchars($row['km_atual'] ?? '') ?></td>
-        <td><?= htmlspecialchars($row['horas_atual'] ?? '') ?></td>
-        <td><?= $mediaGeral ?></td>
-        <td><?= $media3meses ?></td>
-        <td><?= $media12meses ?></td>
-        <td>
-          <a href="editar_veiculo.php?matricula=<?= urlencode($row['matricula'] ?? '') ?>" class="edit-btn" title="Editar">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" ><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34a1.25 1.25 0 0 0 0-1.77L19.43 2.6a1.25 1.25 0 0 0-1.77 0l-1.83 1.83 3.75 3.75 1.83-1.84z"/></svg>
-            Editar
-          </a>
-        </td>
-      </tr>
-      <?php endforeach; ?>
     </tbody>
   </table>
 </form>
@@ -331,7 +304,6 @@ function exportTableToCSV(filename) {
     const cols = row.querySelectorAll("th, td");
     const rowData = [];
     for (const col of cols) {
-      // Remove espaços extras e vírgulas internas para evitar erros no CSV
       let data = col.innerText.replace(/,/g, ""); 
       data = data.trim();
       rowData.push('"' + data + '"');

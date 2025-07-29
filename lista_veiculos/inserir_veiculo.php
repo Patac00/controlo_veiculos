@@ -6,10 +6,35 @@ if (!isset($_SESSION['id_utilizador'])) {
 }
 include("../php/config.php");
 
+function validarCorrigirMatricula($matricula) {
+    $matricula = strtoupper(trim($matricula));
+    $matricula = preg_replace('/[^A-Z0-9]/', '-', $matricula);
+    $partes = explode('-', $matricula);
+
+    if (count($partes) != 3) {
+        $sem_sep = preg_replace('/[^A-Z0-9]/', '', $matricula);
+        if (strlen($sem_sep) == 6) {
+            $partes = [
+                substr($sem_sep, 0, 2),
+                substr($sem_sep, 2, 2),
+                substr($sem_sep, 4, 2)
+            ];
+        } else {
+            return $matricula;
+        }
+    }
+
+    if (!ctype_digit($partes[1]) || strlen($partes[1]) != 2) {
+        $partes[1] = "00";
+    }
+
+    return implode("-", $partes);
+}
+
 $msg = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $matricula = mysqli_real_escape_string($con, $_POST['matricula']);
+    $matricula = $_POST['matricula'] ?? null;
     $marca = mysqli_real_escape_string($con, $_POST['marca']);
     $modelo = mysqli_real_escape_string($con, $_POST['modelo']);
     $tipo_veiculo = mysqli_real_escape_string($con, $_POST['tipo_veiculo']);
@@ -17,31 +42,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $empresa_atual_id = (int)$_POST['empresa_atual_id'];
     $tipo_medida = $_POST['tipo_medida'];
     $estado = mysqli_real_escape_string($con, $_POST['estado']);
+    $capacidade_tanque = isset($_POST['capacidade_tanque']) && $_POST['capacidade_tanque'] !== '' 
+                         ? (int)$_POST['capacidade_tanque'] : "NULL";
 
-    // Gerar a Descrição
     $descricao = $marca . ' ' . $modelo;
 
-    $km_atual = ($tipo_medida === 'km') ? (int)$_POST['km_atual'] : null;
-    $horas_atual = ($tipo_medida === 'horas') ? (int)$_POST['horas_atual'] : null;
+    $km_atual = ($tipo_medida === 'km') ? (int)($_POST['km_atual'] ?? 0) : null;
+    $horas_atual = ($tipo_medida === 'horas') ? (int)($_POST['horas_atual'] ?? 0) : null;
 
-    // Se tipo medida for horas e matricula vazia, colocar NULL
+    if ($matricula !== null && trim($matricula) !== '') {
+        $matricula = validarCorrigirMatricula($matricula);
+    } else {
+        $matricula = null;
+    }
+
     if ($tipo_medida === 'horas' && empty($matricula)) {
         $matricula = null;
     } else {
-        // Verificar duplicação só se matricula não for null
-        $check_sql = "SELECT * FROM veiculos WHERE matricula = '$matricula'";
-        $check_result = mysqli_query($con, $check_sql);
+        if ($matricula !== null) {
+            $check_sql = "SELECT * FROM veiculos WHERE matricula = '$matricula'";
+            $check_result = mysqli_query($con, $check_sql);
 
-        if (mysqli_num_rows($check_result) > 0) {
-            $msg = "Erro: Veículo com esta matrícula já existe.";
+            if (mysqli_num_rows($check_result) > 0) {
+                $msg = "Erro: Veículo com esta matrícula já existe.";
+            }
         }
     }
 
     if (!$msg) {
-        $sql = "INSERT INTO veiculos (matricula, Descricao, empresa_atual_id, Tipo, Grupo, km_atual, horas_atual, estado) 
-                VALUES (" . ($matricula !== null ? "'$matricula'" : "NULL") . ", '$descricao', $empresa_atual_id, '$tipo_veiculo', '$grupo', " . 
-                ($km_atual !== null ? $km_atual : "NULL") . ", " . 
-                ($horas_atual !== null ? $horas_atual : "NULL") . ", '$estado')";
+        $sql = "INSERT INTO veiculos (matricula, Descricao, empresa_atual_id, Tipo, Grupo, km_atual, horas_atual, estado, medida, capacidade_tanque)
+            VALUES (" . ($matricula !== null ? "'$matricula'" : "NULL") . ", '$descricao', $empresa_atual_id, '$tipo_veiculo', '$grupo', " .
+            ($km_atual !== null ? $km_atual : "NULL") . ", " .
+            ($horas_atual !== null ? $horas_atual : "NULL") . ", '$estado', '$tipo_medida', " .
+            ($capacidade_tanque === "NULL" ? "NULL" : $capacidade_tanque) . ")";
 
         if (mysqli_query($con, $sql)) {
             $msg = "Veículo inserido com sucesso.";
@@ -70,7 +103,6 @@ if ($grupos_result) {
         $grupos[] = $row;
     }
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="pt">
@@ -91,7 +123,6 @@ if ($grupos_result) {
             border-radius: 12px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
         }
-
         h2 {
             color: #00693e;
             text-align: center;
@@ -169,14 +200,13 @@ if ($grupos_result) {
 
         <!-- Matrícula -->
         <div id="matricula_group" style="margin-top: 15px; max-width: 300px; display: flex; align-items: center; gap: 5px; position: relative;">
-    <label for="matricula_input" style="flex-shrink: 0; width: 80px;">Matrícula:</label>
-    <input type="text" name="matricula" id="matricula_input" maxlength="15" class="form-control" style="flex-grow: 1;" />
-    <div id="matricula_toggle" style="display: none; flex-shrink: 0;">
-        <span id="toggle_hide" style="cursor: pointer; color: red; font-size: 20px;">❌</span>
-        <span id="toggle_show" style="cursor: pointer; color: green; font-size: 20px; display: none;">✔️</span>
-    </div>
-</div>
-
+            <label for="matricula_input" style="flex-shrink: 0; width: 80px;">Matrícula:</label>
+            <input type="text" name="matricula" id="matricula_input" maxlength="15" class="form-control" style="flex-grow: 1;" />
+            <div id="matricula_toggle" style="display: none; flex-shrink: 0;">
+                <span id="toggle_hide" style="cursor: pointer; color: red; font-size: 20px;">❌</span>
+                <span id="toggle_show" style="cursor: pointer; color: green; font-size: 20px; display: none;">✔️</span>
+            </div>
+        </div>
 
         <!-- Marca -->
         <label>Marca:</label>
@@ -226,6 +256,10 @@ if ($grupos_result) {
             <input type="number" name="horas_atual" min="0" />
         </div>
 
+        <!-- Capacidade Tanque -->
+        <label>Capacidade Tanque (litros):</label>
+        <input type="number" name="capacidade_tanque" min="0" step="1" required />
+
         <!-- Estado -->
         <label>Estado:</label>
         <select name="estado" required>
@@ -236,11 +270,9 @@ if ($grupos_result) {
         </select>
 
         <button type="submit" style="margin-top: 20px;">Guardar Veículo</button>
-
     </form>
 
     <a class="back-btn" href="ver_lista_veiculos.php">← Ver Lista de Veículos</a>
-    
     <a class="back-btn" href="../html/index.php">← Voltar ao Início</a>
 </div>
 
@@ -254,13 +286,11 @@ if ($grupos_result) {
     const kmInput = document.querySelector('input[name="km_atual"]');
     const horasInput = document.querySelector('input[name="horas_atual"]');
 
-    // Função para obter o tipo de medida selecionado
     function getTipoMedida() {
         const sel = document.querySelector('input[name="tipo_medida"]:checked');
         return sel ? sel.value : null;
     }
 
-    // Atualizar UI quando muda o tipo de medida
     document.querySelectorAll('input[name="tipo_medida"]').forEach(radio => {
         radio.addEventListener('change', () => {
             const tipo = getTipoMedida();
@@ -276,7 +306,6 @@ if ($grupos_result) {
                 matriculaInput.disabled = false;
                 matriculaInput.style.opacity = 1;
 
-                // Mostrar o toggle como escondido por defeito
                 toggleHide.style.display = 'inline';
                 toggleShow.style.display = 'none';
             } else if (tipo === 'horas') {
@@ -296,7 +325,6 @@ if ($grupos_result) {
         });
     });
 
-    // Clicar no X para esconder matrícula (desativa input)
     toggleHide.addEventListener('click', () => {
         matriculaInput.value = '';
         matriculaInput.disabled = true;
@@ -306,13 +334,42 @@ if ($grupos_result) {
         toggleShow.style.display = 'inline';
     });
 
-    // Clicar no ✔️ para mostrar matrícula (ativa input)
     toggleShow.addEventListener('click', () => {
         matriculaInput.disabled = false;
-        matriculaInput.required = false; // continua opcional no modo horas
+        matriculaInput.required = false;
         matriculaInput.style.opacity = 1;
         toggleShow.style.display = 'none';
         toggleHide.style.display = 'inline';
+    });
+
+    function validarCorrigirMatriculaJS(matricula) {
+        matricula = matricula.toUpperCase().trim();
+
+        matricula = matricula.replace(/[^A-Z0-9]/g, '-');
+
+        let partes = matricula.split('-');
+
+        if (partes.length !== 3) {
+            let semSep = matricula.replace(/[^A-Z0-9]/g, '');
+            if (semSep.length === 6) {
+                partes = [semSep.slice(0, 2), semSep.slice(2, 4), semSep.slice(4, 6)];
+            } else {
+                return matricula;
+            }
+        }
+
+        if (!/^\d{2}$/.test(partes[1])) {
+            partes[1] = "00";
+        }
+
+        return partes.join('-');
+    }
+
+    matriculaInput.addEventListener('blur', () => {
+        const val = matriculaInput.value;
+        if (val.trim() !== '') {
+            matriculaInput.value = validarCorrigirMatriculaJS(val);
+        }
     });
 </script>
 

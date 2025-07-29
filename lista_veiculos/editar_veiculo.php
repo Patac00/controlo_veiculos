@@ -1,9 +1,11 @@
 <?php 
+
 session_start();
 if (!isset($_SESSION['id_utilizador'])) {
     header("Location: ../login/login.php");
     exit();
 }
+
 include("../php/config.php");
 $msg = "";
 $matricula_antiga = "";
@@ -32,12 +34,15 @@ if (isset($_GET['matricula'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validação básica de campos obrigatórios
     if (
         isset($_POST['Matricula'], $_POST['Descricao'], $_POST['empresa_atual_id'], $_POST['Tipo'], 
               $_POST['Grupo'], $_POST['km_atual'], $_POST['estado'], $_POST['matricula_antiga'])
-    ){
-        $matricula_nova = trim(mysqli_real_escape_string($con, $_POST['Matricula']));
+    ) {
+        $matricula_nova = strtoupper(preg_replace('/[^A-Z0-9]/', '', trim($_POST['Matricula'])));
+        if (strlen($matricula_nova) === 6) {
+            $matricula_nova = substr($matricula_nova, 0, 2) . '-' . substr($matricula_nova, 2, 2) . '-' . substr($matricula_nova, 4, 2);
+        }
+
         $descricao = mysqli_real_escape_string($con, $_POST['Descricao']);
         $empresa_atual_id = (int)$_POST['empresa_atual_id'];
         $tipo = mysqli_real_escape_string($con, $_POST['Tipo']);
