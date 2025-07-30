@@ -29,7 +29,7 @@ $stmt_user->execute();
 $res_user = $stmt_user->get_result();
 if ($res_user && mysqli_num_rows($res_user) > 0) {
     $user_data = $res_user->fetch_assoc();
-    $empresa_id_sessao = (int)$user_data['empresa_id']; // guardo da sessão para default
+    $empresa_id_sessao = (int)$user_data['empresa_id'];
     $unidade_str = $user_data['unidades'];
     $empresa_nome = $user_data['empresa_nome'];
 }
@@ -39,9 +39,8 @@ $stmt_user->close();
 $res = mysqli_query($con, "SELECT DISTINCT nome FROM tipo_combustivel");
 while ($row = mysqli_fetch_assoc($res)) {
     $tipos[] = $row['nome'];
-    $tipo_combustivel_default = $tipos[0] ?? '';
-
 }
+$tipo_combustivel_default = $tipos[0] ?? '';
 
 // Buscar postos associados à empresa
 $postos = [];
@@ -65,17 +64,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = $_POST['data'] ?? null;
     $tipo_combustivel = $_POST['tipo_combustivel'] ?? null;
     $preco_litro = $_POST['preco_litro'] ?? null;
-    $id_posto = $_POST['id_posto'] ?? null;  // mudou para id_posto
+    $id_posto = $_POST['id_posto'] ?? null;
     $fatura = $_POST['fatura'] ?? null;
-    $litros = floatval($_POST['litros']);
-    $id_empresa = $_POST['empresa_id'] ?? null; // pode ser id ou nome
+    $litros = $_POST['litros'] ?? null;
+    $id_empresa = $_POST['empresa_id'] ?? null;
     $unidade_escolhida = null;
 
-    // Validar se id_empresa é id ou nome e obter empresa_id real
-    if ($id_empresa) {
+    $missing = [];
+
+    // Validar data - formato e validade
+    if (!$data) {
+        $missing[] = 'Data';
+    } else {
+        $d = DateTime::createFromFormat('Y-m-d', $data);
+        $valid_date = $d && $d->format('Y-m-d') === $data;
+        if (!$valid_date) {
+            $mensagem = "Data inválida. Usa o formato YYYY-MM-DD.";
+            $tipo_mensagem = "danger";
+            $data = null; // invalida para evitar continuar
+        }
+    }
+
+    // Validar tipo_combustivel (deve estar na lista)
+    if (!$tipo_combustivel || !in_array($tipo_combustivel, $tipos, true)) {
+        $missing[] = 'Tipo de Combustível válido';
+    }
+
+    // Validar preco_litro
+    if (!$preco_litro || !is_numeric($preco_litro) || floatval($preco_litro) <= 0) {
+        $missing[] = 'Preço por Litro válido e positivo';
+    } else {
+        $preco_litro = floatval($preco_litro);
+    }
+
+    // Validar id_posto (inteiro e pertence à empresa)
+    if (!$id_posto || !is_numeric($id_posto)) {
+        $missing[] = 'Posto válido';
+        $id_posto = null;
+    } else {
+        $id_posto = (int)$id_posto;
+
+        // Confirmar que posto pertence à empresa_id_sessao
+        $stmt_check_posto = $con->prepare("SELECT COUNT(*) FROM lista_postos WHERE id_posto = ? AND empresa_id = ?");
+        $stmt_check_posto->bind_param("ii", $id_posto, $empresa_id_sessao);
+        $stmt_check_posto->execute();
+        $stmt_check_posto->bind_result($count_posto);
+        $stmt_check_posto->fetch();
+        $stmt_check_posto->close();
+
+        if ($count_posto === 0) {
+            $mensagem = "Posto não pertence à empresa do utilizador.";
+            $tipo_mensagem = "danger";
+            $id_posto = null;
+        }
+    }
+
+    // Validar fatura (não vazio e sanitizar)
+    if (!$fatura || trim($fatura) === '') {
+        $missing[] = 'Fatura';
+    } else {
+        $fatura = trim($fatura);
+        // Exemplo simples: só aceitar letras, números, - e _
+        if (!preg_match('/^[a-zA-Z0-9\-_]+$/', $fatura)) {
+            $mensagem = "Fatura contém caracteres inválidos.";
+            $tipo_mensagem = "danger";
+            $fatura = null;
+        }
+    }
+
+    // Validar litros
+    if (!$litros || !is_numeric($litros) || floatval($litros) <= 0) {
+        $missing[] = 'Litros (maior que 0)';
+    } else {
+        $litros = floatval($litros);
+        if ($litros > 10000) {
+            $mensagem = "Erro: não podes inserir mais que 10.000 litros de uma vez.";
+            $tipo_mensagem = "danger";
+            $litros = null;
+        }
+    }
+
+    // Validar empresa_id (se existe e válido)
+    if (!$id_empresa) {
+        $missing[] = 'Empresa';
+        $empresa_id = null;
+    } else {
         if (is_numeric($id_empresa)) {
             $empresa_id = (int)$id_empresa;
         } else {
+            // Busca empresa pelo nome
             $sql_empresa = "SELECT empresa_id FROM empresas WHERE nome = ? LIMIT 1";
             $stmt_empresa = $con->prepare($sql_empresa);
             $stmt_empresa->bind_param("s", $id_empresa);
@@ -84,12 +161,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($res_empresa && $row_emp = $res_empresa->fetch_assoc()) {
                 $empresa_id = (int)$row_emp['empresa_id'];
             } else {
-                $empresa_id = null; // nome não encontrado
+                $empresa_id = null;
             }
             $stmt_empresa->close();
         }
-    } else {
-        $empresa_id = null;
+
+        // Confirmar empresa_id existe na BD
+        if ($empresa_id) {
+            $stmt_check_empresa = $con->prepare("SELECT COUNT(*) FROM empresas WHERE empresa_id = ?");
+            $stmt_check_empresa->bind_param("i", $empresa_id);
+            $stmt_check_empresa->execute();
+            $stmt_check_empresa->bind_result($count_empresa);
+            $stmt_check_empresa->fetch();
+            $stmt_check_empresa->close();
+
+            if ($count_empresa === 0) {
+                $mensagem = "Empresa inválida.";
+                $tipo_mensagem = "danger";
+                $empresa_id = null;
+            }
+        } else {
+            $missing[] = 'Empresa válida';
+        }
     }
 
     // Buscar unidade correspondente ao id_posto escolhido
@@ -103,57 +196,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $unidade_escolhida = $row_unidade['unidade'];
         }
         $stmt_unidade->close();
-    }
 
-    if ($data && $tipo_combustivel && $litros > 0 && $preco_litro && $id_posto && $fatura && $empresa_id && $unidade_escolhida !== null) {
-        if ($litros > 10000) {
-            $mensagem = "Erro: não podes inserir mais que 10000 litros de uma vez.";
-            $tipo_mensagem = "danger";
-        } else {
-            $sql = "SELECT COALESCE(SUM(litros), 0) AS total FROM fornecimentos_bomba WHERE tipo_combustivel = ? AND id_posto = ? AND data = ?";
-            $stmt_check = $con->prepare($sql);
-            $stmt_check->bind_param("sis", $tipo_combustivel, $id_posto, $data);
-            $stmt_check->execute();
-            $result = $stmt_check->get_result();
-            $row = $result->fetch_assoc();
-            $total_atual = $row['total'] ?? 0;
-
-            $novo_total = $total_atual + $litros;
-
-            if ($novo_total > 10000) {
-                $mensagem = "Erro: Limite de 10.000 litros ultrapassado para este tipo de combustível, posto e data.<br>" .
-                            "Já existem $total_atual litros registados, estás a tentar adicionar $litros litros.";
-                $tipo_mensagem = "danger";
-            } else {
-                $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, id_posto, preco_litro, fatura, empresa_id, unidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("ssdidsis", $data, $tipo_combustivel, $litros, $id_posto, $preco_litro, $fatura, $empresa_id, $unidade_escolhida);
-
-                if ($stmt->execute()) {
-                    $mensagem = "✅ Fornecimento registado com sucesso!";
-                    $tipo_mensagem = "success";
-                } else {
-                    $mensagem = "Erro ao registar fornecimento: " . $stmt->error;
-                    $tipo_mensagem = "danger";
-                }
-
-                $stmt->close();
-            }
-
-            $stmt_check->close();
+        if ($unidade_escolhida === null) {
+            $missing[] = 'Unidade';
         }
     } else {
-        $missing = [];
-        if (!$data) $missing[] = 'Data';
-        if (!$tipo_combustivel) $missing[] = 'Tipo de Combustível';
-        if ($litros <= 0) $missing[] = 'Litros (deve ser maior que 0)';
-        if (!$preco_litro) $missing[] = 'Preço por Litro';
-        if (!$id_posto) $missing[] = 'Posto';
-        if (!$fatura) $missing[] = 'Fatura';
-        if (!$empresa_id) $missing[] = 'Empresa';
-        if ($unidade_escolhida === null) $missing[] = 'Unidade';
+        $missing[] = 'Posto válido para obter Unidade';
+    }
 
+    // Se houver campos em falta, mostra aviso e não avança
+    if (count($missing) > 0) {
         $mensagem = "Por favor, preenche corretamente os seguintes campos: " . implode(', ', $missing) . ".";
         $tipo_mensagem = "warning";
+    } else {
+        // Verificar limite total diário para este posto e combustível
+        $sql = "SELECT COALESCE(SUM(litros), 0) AS total FROM fornecimentos_bomba WHERE tipo_combustivel = ? AND id_posto = ? AND data = ?";
+        $stmt_check = $con->prepare($sql);
+        $stmt_check->bind_param("sis", $tipo_combustivel, $id_posto, $data);
+        $stmt_check->execute();
+        $result = $stmt_check->get_result();
+        $row = $result->fetch_assoc();
+        $total_atual = $row['total'] ?? 0;
+        $stmt_check->close();
+
+        $novo_total = $total_atual + $litros;
+
+        if ($novo_total > 10000) {
+            $mensagem = "Erro: Limite de 10.000 litros ultrapassado para este tipo de combustível, posto e data.<br>" .
+                        "Já existem $total_atual litros registados, estás a tentar adicionar $litros litros.";
+            $tipo_mensagem = "danger";
+        } else {
+            // Inserir no BD
+            $stmt = $con->prepare("INSERT INTO fornecimentos_bomba (data, tipo_combustivel, litros, id_posto, preco_litro, fatura, empresa_id, unidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssdidsis", $data, $tipo_combustivel, $litros, $id_posto, $preco_litro, $fatura, $empresa_id, $unidade_escolhida);
+
+            if ($stmt->execute()) {
+                $mensagem = "✅ Fornecimento registado com sucesso!";
+                $tipo_mensagem = "success";
+            } else {
+                $mensagem = "Erro ao registar fornecimento: " . $stmt->error;
+                $tipo_mensagem = "danger";
+            }
+
+            $stmt->close();
+        }
     }
 }
 ?>
@@ -273,5 +359,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+      const data = this.data.value;
+      const tipo = this.tipo_combustivel.value;
+      const preco = parseFloat(this.preco_litro.value);
+      const litros = parseFloat(this.litros.value);
+      const idPosto = this.id_posto.value;
+      const fatura = this.fatura.value;
+
+      let erros = [];
+
+      // Validar data no formato yyyy-mm-dd
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+        erros.push("Data inválida. Usa o formato YYYY-MM-DD.");
+      }
+
+      // Tipo combustível
+      if (!tipo) {
+        erros.push("Seleciona um tipo de combustível.");
+      }
+
+      // Preço por litro
+      if (isNaN(preco) || preco <= 0) {
+        erros.push("Preço por litro deve ser um número positivo.");
+      }
+
+      // Litros
+      if (isNaN(litros) || litros <= 0 || litros > 10000) {
+        erros.push("Litros devem ser entre 0 e 10.000.");
+      }
+
+      // Posto
+      if (!idPosto) {
+        erros.push("Seleciona um posto.");
+      }
+
+      // Fatura
+      if (!fatura) {
+        erros.push("Seleciona se há fatura.");
+      }
+
+      if (erros.length > 0) {
+        e.preventDefault();
+        alert("Erros:\n" + erros.join("\n"));
+      }
+    });
+  </script>
+
 </body>
 </html>

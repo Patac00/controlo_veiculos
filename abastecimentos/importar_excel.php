@@ -47,6 +47,26 @@ function converteData($data) {
     return $data;
 }
 
+function validaData($data) {
+    $d = DateTime::createFromFormat('Y-m-d', converteData($data));
+    return $d && $d->format('Y-m-d') === converteData($data);
+}
+
+function validaHora($hora) {
+    return preg_match('/^(2[0-3]|[01][0-9]):[0-5][0-9](:[0-5][0-9])?$/', $hora);
+}
+
+function validaMatricula($matricula) {
+    // Normalizar e validar formato PT: XX-XX-XX ou XX-XXX-XX
+    $mat = strtoupper(str_replace([' ', '.', ','], '', $matricula));
+    return preg_match('/^[A-Z0-9]{6,7}$/', $mat);
+}
+
+function validaNumeroPositivo($num) {
+    return is_numeric($num) && $num >= 0;
+}
+
+
 
 $dadosConvertidos = [];
 
@@ -105,32 +125,70 @@ if (isset($_POST['guardar']) && isset($_SESSION['dados_convertidos'])) {
         $veiculos[$matriculaLimpa] = $v['id_veiculo'];
     }
 
-    foreach ($dados as $linha) {
-        $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $linha['matricula']));
-        $id_veiculo = $veiculos[$matriculaLimpa] ?? "NULL";
+foreach ($dados as $linha) {
+    // ... prepara variáveis (matricula, id_veiculo, etc)
 
-        $unidade = intval($linha['unidade']);
-//        $resP = $con->query("SELECT id_posto FROM lista_postos WHERE numero_bomba = $unidade");
-        $resP = $con->query("SELECT id_posto FROM lista_postos WHERE id_posto = $unidade");
+    $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $linha['matricula']));
+    $id_veiculo = $veiculos[$matriculaLimpa] ?? null;
 
-        $id_posto = $resP && $resP->num_rows > 0 ? $resP->fetch_assoc()['id_posto'] : "NULL";
-
-        $data = converteData(mysqli_real_escape_string($con, $linha['data']));
-        $hora = mysqli_real_escape_string($con, $linha['hora']);
-        $numero_reg = mysqli_real_escape_string($con, $linha['matricula']);
-        $odometro = (int) $linha['odometro'];
-        $motorista = mysqli_real_escape_string($con, $linha['motorista']);
-        $quantidade = (float) $linha['quantidade'];
-
-        $sql = "INSERT INTO bomba (
-                    unidade, data, hora, id_veiculo, numero_reg,
-                    odometro, motorista, quantidade, id_posto
-                ) VALUES (
-                    $unidade, '$data', '$hora', $id_veiculo, '$numero_reg',
-                    $odometro, '$motorista', $quantidade, $id_posto
-                )";
-        $con->query($sql);
+    if (!$id_veiculo) {
+        echo "<p style='color: red;'>Matrícula <strong>{$linha['matricula']}</strong> não encontrada na base de dados. 
+        <a href='../lista_veiculos/inserir_veiculo.php' target='_blank'>Inserir veículo</a></p>";
+        continue; // Ignora esta linha para não tentar inserir com id_veiculo inválido
     }
+
+    $data = converteData(mysqli_real_escape_string($con, $linha['data']));
+    $hora = mysqli_real_escape_string($con, $linha['hora']);
+    $numero_reg = mysqli_real_escape_string($con, $linha['matricula']);
+    $odometro = (int) $linha['odometro'];
+    $motorista = mysqli_real_escape_string($con, $linha['motorista']);
+    $quantidade = (float) $linha['quantidade'];
+
+    // Junta data e hora numa só para facilitar comparações
+    $dataHora = $data . ' ' . $hora;
+
+    // 1. Verifica se já existe registo para o veículo com data e hora iguais
+    $sql_dup = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND data = '$data' AND hora = '$hora' LIMIT 1";
+    $res_dup = $con->query($sql_dup);
+    if ($res_dup && $res_dup->num_rows > 0) {
+        echo "<p style='color:red;'>Erro: Já existe um registo para o veículo {$numero_reg} na data {$data} e hora {$hora}.</p>";
+        continue;
+    }
+
+    // 2. Obter odometro anterior (último antes da data/hora que queremos inserir)
+    $sql_anterior = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data < '$data' OR (data = '$data' AND hora < '$hora')) ORDER BY data DESC, hora DESC LIMIT 1";
+    $res_anterior = $con->query($sql_anterior);
+    $odometro_anterior = $res_anterior && $res_anterior->num_rows > 0 ? (int)$res_anterior->fetch_assoc()['odometro'] : null;
+
+    // 3. Obter odometro seguinte (primeiro depois da data/hora que queremos inserir)
+    $sql_seguinte = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data > '$data' OR (data = '$data' AND hora > '$hora')) ORDER BY data ASC, hora ASC LIMIT 1";
+    $res_seguinte = $con->query($sql_seguinte);
+    $odometro_seguinte = $res_seguinte && $res_seguinte->num_rows > 0 ? (int)$res_seguinte->fetch_assoc()['odometro'] : null;
+
+    // 4. Validações do odómetro:
+    if (!is_null($odometro_anterior) && $odometro <= $odometro_anterior) {
+        echo "<p style='color:red;'>Erro: odómetro {$odometro} deve ser superior ao último registo anterior {$odometro_anterior} para a matrícula {$numero_reg}.</p>";
+        continue;
+    }
+    if (!is_null($odometro_seguinte) && $odometro >= $odometro_seguinte) {
+        echo "<p style='color:red;'>Erro: odómetro {$odometro} deve ser inferior ao próximo registo {$odometro_seguinte} para a matrícula {$numero_reg}.</p>";
+        continue;
+    }
+
+    // Depois de passar as validações, faz o INSERT
+    $sql = "INSERT INTO bomba (
+                unidade, data, hora, id_veiculo, numero_reg,
+                odometro, motorista, quantidade, id_posto
+            ) VALUES (
+                $unidade, '$data', '$hora', $id_veiculo, '$numero_reg',
+                $odometro, '$motorista', $quantidade, $id_posto
+            )";
+
+    if (!$con->query($sql)) {
+        echo "Erro na query: " . $con->error;
+    }
+}
+
 
     echo "<p style='color: green;'>✅ Dados guardados com sucesso!</p>";
     unset($_SESSION['dados_convertidos']);

@@ -37,23 +37,25 @@ if ($empresa_id) {
           p.capacidade,
           p.unidade,
           p.local,
-          COALESCE(SUM(m.litros), 0) AS litros
+          COALESCE(SUM(s.litros), 0) AS litros
       FROM lista_postos p
-      LEFT JOIN movimentos_stock m ON m.id_posto = p.id_posto AND m.empresa_id = ?
+      LEFT JOIN stock_combustivel s ON s.id_posto = p.id_posto AND s.empresa_id = ?
       WHERE p.empresa_id = ?
       GROUP BY p.id_posto, p.nome, p.capacidade, p.unidade, p.local
   ";
 
-    $stmt = $con->prepare($sql);
-    $stmt->bind_param("ii", $empresa_id, $empresa_id);
-    $stmt->execute();
-    $res = $stmt->get_result();
+  $stmt = $con->prepare($sql);
+  $stmt->bind_param("ii", $empresa_id, $empresa_id);
+  $stmt->execute();
+  $res = $stmt->get_result();
 
-    while ($row = $res->fetch_assoc()) {
-        $postos[] = $row;
-    }
-    $stmt->close();
+  $postos = [];
+  while ($row = $res->fetch_assoc()) {
+      $postos[] = $row;
+  }
+  $stmt->close();
 }
+
 
 // Preço litro gasóleo (sem unidades, só o último geral)
 $preco = 'Erro -_-';
