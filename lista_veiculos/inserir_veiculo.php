@@ -342,28 +342,37 @@ if ($grupos_result) {
         toggleHide.style.display = 'inline';
     });
 
-    function validarCorrigirMatriculaJS(matricula) {
-        matricula = matricula.toUpperCase().trim();
+function validarCorrigirMatriculaJS(matricula) {
+    matricula = matricula.toUpperCase().trim();
 
-        matricula = matricula.replace(/[^A-Z0-9]/g, '-');
+    // Tirar tudo menos letras e números
+    let sem_sep = matricula.replace(/[^A-Z0-9]/g, '');
 
-        let partes = matricula.split('-');
-
-        if (partes.length !== 3) {
-            let semSep = matricula.replace(/[^A-Z0-9]/g, '');
-            if (semSep.length === 6) {
-                partes = [semSep.slice(0, 2), semSep.slice(2, 4), semSep.slice(4, 6)];
-            } else {
-                return matricula;
-            }
-        }
-
-        if (!/^\d{2}$/.test(partes[1])) {
-            partes[1] = "00";
-        }
-
-        return partes.join('-');
+    if (sem_sep.length !== 6) {
+        return matricula;
     }
+
+    let partes = [
+        sem_sep.slice(0, 2),
+        sem_sep.slice(2, 4),
+        sem_sep.slice(4, 6)
+    ];
+
+    // Verifica se cada bloco tem só letras ou só números
+    function validaBloco(bloco) {
+        return /^[A-Z]{2}$/.test(bloco) || /^\d{2}$/.test(bloco);
+    }
+
+    for (let i = 0; i < partes.length; i++) {
+        if (!validaBloco(partes[i])) {
+            partes[i] = "00";
+        }
+    }
+
+    return partes.join("-");
+}
+
+
 
     matriculaInput.addEventListener('blur', () => {
         const val = matriculaInput.value;

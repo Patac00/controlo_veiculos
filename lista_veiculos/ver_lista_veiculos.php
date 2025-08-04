@@ -67,7 +67,7 @@ $result = mysqli_query($con, $sql);
       margin: 30px;
     }
     h2 {
-      color: #333;
+      color: #00693e;
       text-align: center;
       margin-bottom: 10px;
     }
@@ -101,35 +101,42 @@ $result = mysqli_query($con, $sql);
     }
     thead tr.filters input:focus,
     thead tr.filters select:focus {
-      border-color: #007BFF;
+      border-color: #00693e;
       outline: none;
     }
     tbody tr:hover {
       background-color: #f1f1f1;
     }
-    .edit-btn {
-      text-decoration: none;
-      background-color: #007BFF;
+    .btn-warning {
+      background-color: #f0ad4e;
       color: white;
+      border: none;
       padding: 5px 10px;
       border-radius: 5px;
       font-weight: 600;
       font-size: 14px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: background-color 0.3s;
+      text-decoration: none;
     }
-    .edit-btn:hover {
-      background-color: #0056b3;
+    .btn-warning:hover {
+      background-color: #ec971f;
+      color: white;
+      text-decoration: none;
     }
-    .edit-btn svg {
-      width: 16px;
-      height: 16px;
-      fill: white;
+    .btn-danger {
+      background-color: #d9534f;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn-danger:hover {
+      background-color: #c9302c;
     }
     button, a.btn-voltar, a.export-btn {
-      background-color: #007BFF;
+      background-color: #00693e;
       color: white;
       border: none;
       padding: 8px 16px;
@@ -142,7 +149,7 @@ $result = mysqli_query($con, $sql);
       transition: background-color 0.3s;
     }
     button:hover, a.btn-voltar:hover, a.export-btn:hover {
-      background-color: #0056b3;
+      background-color: #005632;
     }
     .filter-actions {
       text-align: right;
@@ -161,11 +168,16 @@ $result = mysqli_query($con, $sql);
       font-weight: 600;
       padding: 6px 12px;
     }
+    .pagination button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      color: #666;
+    }
   </style>
 </head>
 <body>
 
-<a href="../html/index.php" class="btn-voltar">Voltar</a>
+<a href="../html/index.php" class="btn-voltar">← Voltar</a>
 
 <h2>Lista de Veículos</h2>
 
@@ -196,7 +208,7 @@ $result = mysqli_query($con, $sql);
         </th>
         <th colspan="10" class="filter-actions">
           <button type="submit">Filtrar</button>
-          <a href="ver_lista_veiculos.php">Limpar</a>
+          <a href="ver_lista_veiculos.php" class="export-btn">Limpar</a>
           <a href="#" class="export-btn" onclick="exportTableToCSV('veiculos.csv'); return false;">Exportar CSV</a>
         </th>
       </tr>
@@ -228,22 +240,26 @@ $result = mysqli_query($con, $sql);
 <?php foreach ($rows as $index => $row): ?>
   <tr class="data-row">
     <td><?= $row['id_veiculo'] ?></td>
-    <td><?= $row['matricula'] ?></td>
-    <td><?= $row['Descricao'] ?></td>
-    <td><?= $row['nome_empresa'] ?></td>
-    <td><?= $row['Tipo'] ?></td>
-    <td><?= $row['Grupo'] ?></td>
-    <td><?= $row['relatorio'] ?></td>
-    <td><?= $row['criterio'] ?></td>
-    <td><?= $row['abastecimentos'] ?></td>
-    <td><?= $row['medida'] ?></td>
-    <td><?= $row['km_atual'] ?></td>
-    <td><?= $row['horas_atual'] ?></td>
-    <td><?= $row['estado'] ?></td>
-    <td><?= $row['capacidade_tanque'] ?></td>
+<td><?= htmlspecialchars($row['matricula'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['Descricao'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['nome_empresa'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['Tipo'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['Grupo'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['relatorio'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['criterio'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['abastecimentos'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['medida'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['km_atual'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['horas_atual'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['estado'] ?? '') ?></td>
+<td><?= htmlspecialchars($row['capacidade_tanque'] ?? '') ?></td>
+
     <td>
-      <a href="editar.php?id=<?= $row['id_veiculo'] ?>" class="btn btn-sm btn-warning">Editar</a>
-      <a href="eliminar.php?id=<?= $row['id_veiculo'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Tens a certeza que queres eliminar?')">Eliminar</a>
+      <a href="editar_veiculo.php?matricula=<?= urlencode($row['matricula']) ?>" class="btn-warning">Editar</a>
+      <form method="post" action="eliminar.php" style="display:inline;" onsubmit="return confirm('Tens a certeza que queres eliminar?');">
+        <input type="hidden" name="id" value="<?= $row['id_veiculo'] ?>">
+        <button type="submit" class="btn-danger">Eliminar</button>
+      </form>
     </td>
   </tr>
 <?php endforeach; ?>
@@ -253,9 +269,10 @@ $result = mysqli_query($con, $sql);
 </form>
 
 <div class="pagination">
-  <button onclick="changePage(-1)">« Anterior</button>
+  <button type="button" onclick="changePage(-1)">« Anterior</button>
   <span id="page-info">Página 1</span>
-  <button onclick="changePage(1)">Seguinte »</button>
+  <button type="button" onclick="changePage(1)">Seguinte »</button>
+
 </div>
 
 <script>
@@ -264,6 +281,11 @@ const rows = document.querySelectorAll('tr.data-row');
 const rowsPerPage = 10;
 let currentPage = 1;
 const totalPages = Math.ceil(rows.length / rowsPerPage);
+
+function updateButtons() {
+  document.querySelector('button[onclick="changePage(-1)"]').disabled = (currentPage === 1);
+  document.querySelector('button[onclick="changePage(1)"]').disabled = (currentPage === totalPages || totalPages === 0);
+}
 
 function showPage(page) {
   if (page < 1 || page > totalPages) return;
@@ -276,10 +298,14 @@ function showPage(page) {
   });
 
   document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}`;
+  updateButtons();
 }
 
 function changePage(increment) {
-  showPage(currentPage + increment);
+  let newPage = currentPage + increment;
+  if (newPage < 1) newPage = 1;
+  if (newPage > totalPages) newPage = totalPages;
+  showPage(newPage);
 }
 
 showPage(1);
@@ -304,7 +330,7 @@ function exportTableToCSV(filename) {
     const cols = row.querySelectorAll("th, td");
     const rowData = [];
     for (const col of cols) {
-      let data = col.innerText.replace(/,/g, ""); 
+      let data = col.innerText.replace(/,/g, "");
       data = data.trim();
       rowData.push('"' + data + '"');
     }

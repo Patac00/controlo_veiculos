@@ -27,6 +27,7 @@ $unidades = [];
 // Stock combustível por unidade (vai ficar vazio)
 $nivel_combustivel_unidades = [];
 
+
 // Buscar postos e stocks para a empresa
 $postos = [];
 if ($empresa_id) {
@@ -54,7 +55,16 @@ if ($empresa_id) {
       $postos[] = $row;
   }
   $stmt->close();
+
+  // 🔔 Notificações (agora sim, depois de carregar os postos)
+  $notificacoes = [];
+  foreach ($postos as $posto) {
+      if ($posto['litros'] < 2000) {
+          $notificacoes[] = "Alerta: Posto '{$posto['nome']}' com combustível abaixo de 2000L.";
+      }
+  }
 }
+
 
 
 // Preço litro gasóleo (sem unidades, só o último geral)
@@ -198,6 +208,12 @@ $capacidade_total_js = (int)$capacidade_total;
   transition: width 0.6s ease;
   background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.05));
 }
+.icon-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 
     </style>
   </head>
@@ -223,6 +239,7 @@ $capacidade_total_js = (int)$capacidade_total;
   <div class="menu-inner-shadow"></div>
 
   <ul class="menu-inner py-1">
+
     <!-- Dashboard -->
     <li class="menu-item active">
       <a href="index.php" class="menu-link">
@@ -319,66 +336,76 @@ $capacidade_total_js = (int)$capacidade_total;
 </aside>
         <!-- / Menu -->
         <div class="layout-page">
-          <nav
-            class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme"
-            id="layout-navbar"
-            >
-            <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
-              <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
-                <i class="bx bx-menu bx-sm"></i>
-              </a>
-            </div>
-              <ul class="navbar-nav flex-row align-items-center ms-auto">
-                <!-- User -->
-                <li class="nav-item navbar-dropdown dropdown-user dropdown">
-                  <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-                    <div class="avatar avatar-online">
-                      <img src="../assets/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle" />
-                    </div>
-                  </a>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                      <a class="dropdown-item" href="#">
-                        <div class="d-flex">
-                          <div class="flex-shrink-0 me-3">
-                            <div class="avatar avatar-online">
-                              <img src="../assets/img/avatars/1.png" alt class="w-px-40 h-auto rounded-circle" />
-                            </div>
-                          </div>
-                          <div class="flex-grow-1">
-                            <span class="fw-semibold d-block"><?= $_SESSION['nome'] ?? 'Sem nome' ?></span>
-                            <small class="text-muted"><?= $_SESSION['cargo'] ?? 'Sem cargo' ?></small>
-                          </div>
-                        </div>
-                      </a>
-                    </li>
-                    <li>
-                      <div class="dropdown-divider"></div>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="../perfil/editar_perfil.php">
-                        <i class="bx bx-user me-2"></i>
-                        <span class="align-middle">Meu Perfil</span>
-                      </a>
-                    </li>
-                    <!--<li>
-                      <a class="dropdown-item" href="#">
-                        <i class="bx bx-cog me-2"></i>
-                        <span class="align-middle">Settings</span>
-                      </a>
-                    </li>-->
-                    <li>
-                      <div class="dropdown-divider"></div>
-                    </li>
-                    <li>
-                      <a href="../php/logout.php" class="btn btn-danger w-100">
-                        <i class="bx bx-log-out"></i> Logout
-                      </a>
-                    </li>
-                  </ul>
+          <nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
+          <!-- Botão do menu para ecrãs pequenos -->
+          <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+            <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
+              <i class="bx bx-menu bx-sm"></i>
+            </a>
+          </div>
+
+          <!-- Ícones do canto superior direito -->
+          <ul class="navbar-nav flex-row align-items-center ms-auto">
+
+            <!-- Notificações -->
+            <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3">
+              <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown" id="notiToggle">
+  <i class="bx bx-bell" style="font-size: 28px;"></i>
+  <span class="badge bg-danger rounded-pill badge-notifications" id="notiCount">0</span>
+</a>
+
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li class="dropdown-header text-center fw-bold">Notificações</li>
+                <li><hr class="dropdown-divider"></li>
+                <div id="notiList" class="px-3 py-1" style="max-height: 250px; overflow-y: auto;"></div>
+                <li><hr class="dropdown-divider"></li>
+                <li class="text-center">
+                  <a href="todas_notificacoes.php" class="dropdown-item">Ver todas</a>
                 </li>
               </ul>
-          </nav>
+            </li>
+
+            <!-- Utilizador -->
+            <li class="nav-item navbar-dropdown dropdown-user dropdown">
+              <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
+                <div class="avatar avatar-online">
+                  <img src="../assets/img/avatars/1.png" alt="Avatar" class="w-px-40 h-auto rounded-circle" />
+                </div>
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a class="dropdown-item" href="#">
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0 me-3">
+                        <div class="avatar avatar-online">
+                          <img src="../assets/img/avatars/1.png" alt="Avatar" class="w-px-40 h-auto rounded-circle" />
+                        </div>
+                      </div>
+                      <div class="flex-grow-1">
+                        <span class="fw-semibold d-block"><?= $_SESSION['nome'] ?? 'Sem nome' ?></span>
+                        <small class="text-muted"><?= $_SESSION['cargo'] ?? 'Sem cargo' ?></small>
+                      </div>
+                    </div>
+                  </a>
+                </li>
+                <li><div class="dropdown-divider"></div></li>
+                <li>
+                  <a class="dropdown-item" href="../perfil/editar_perfil.php">
+                    <i class="bx bx-user me-2"></i>
+                    <span class="align-middle">Meu Perfil</span>
+                  </a>
+                </li>
+                <li><div class="dropdown-divider"></div></li>
+                <li>
+                  <a href="../php/logout.php" class="btn btn-danger w-100">
+                    <i class="bx bx-log-out"></i> Logout
+                  </a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </nav>
+
           <div class="content-wrapper">
           <div class="container-xxl flex-grow-1 container-p-y">
           <div class="row">
@@ -457,45 +484,70 @@ $capacidade_total_js = (int)$capacidade_total;
             </div>
           </div>
 
-         <div class="container mt-5">
-          <h1 class="mb-4">Postos Associados</h1>
-          <?php if (count($postos) === 0): ?>
-            <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
-          <?php else: ?>
-            <div class="row">
-              <?php foreach ($postos as $posto): 
-                $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
-                $percentagem = min(100, max(0, $percentagem));
-                $cor = ($percentagem > 70) ? 'bg-success' : (($percentagem > 30) ? 'bg-warning' : 'bg-danger');
-              ?>
-                <div class="col-md-4 mb-4">
-                  <div class="card shadow-sm h-100">
-                    <div class="card-body d-flex flex-column justify-content-between">
-                      <div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                          <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
-                          <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
-                        </div>
+<div class="container mt-5">
+  <h1 class="mb-4">Postos Associados</h1>
+  <div class="row">
+    
+    <!-- Coluna dos postos (esquerda) -->
+    <div class="col-md-9">
+      <?php if (count($postos) === 0): ?>
+        <div class="alert alert-warning">Não foram encontrados postos para a sua unidade.</div>
+      <?php else: ?>
+        <div class="row">
+          <?php foreach ($postos as $posto): 
+            $percentagem = ($posto['litros'] && $posto['capacidade']) ? round(($posto['litros'] / $posto['capacidade']) * 100, 1) : 0;
+            $percentagem = min(100, max(0, $percentagem));
+            $cor = ($percentagem > 70) ? 'bg-success' : (($percentagem > 30) ? 'bg-warning' : 'bg-danger');
+          ?>
+            <div class="col-md-6 mb-4">
+              <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                  <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0"><?= htmlspecialchars($posto['nome']) ?></h5>
+                      <a class="btn btn-sm btn-outline-primary" href="../abastecimentos/fornecer_comb.php?posto=<?= urlencode($posto['nome']) ?>">Fornecer</a>
+                    </div>
 
-                        <div class="progress mb-2" style="height: 24px; border-radius: 12px; overflow: hidden;">
-                          <div class="progress-bar <?= $cor ?>" style="width: <?= $percentagem ?>%; min-width: 40px; font-weight: 600; border-radius: 12px; transition: width 0.6s ease; background-image: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(0,0,0,0.05));">
-                            <?= $percentagem ?>%
-                          </div>
-                        </div>
-
-                        <small class="text-muted">
-                          <?= $percentagem ?>% da capacidade total (<?= number_format($posto['capacidade'], 0, ',', '.') ?> L)
-                        </small>
-                      </div>
-                      <div class="mt-3 small text-muted">
-                        <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= $posto['capacidade'] ?? 0 ?> L
+                    <div class="progress mb-2" style="height: 24px; border-radius: 12px; overflow: hidden;">
+                      <div class="progress-bar <?= $cor ?>" style="width: <?= $percentagem ?>%; min-width: 40px; font-weight: 600; border-radius: 12px; transition: width 0.6s ease; background-image: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(0,0,0,0.05));">
+                        <?= $percentagem ?>%
                       </div>
                     </div>
+
+                    <small class="text-muted">
+                      <?= $percentagem ?>% da capacidade total (<?= number_format($posto['capacidade'], 0, ',', '.') ?> L)
+                    </small>
+                  </div>
+                  <div class="mt-3 small text-muted">
+                    <?= htmlspecialchars($posto['tipo_combustivel'] ?? 'N/A') ?> · <?= number_format($posto['litros'] ?? 0, 2, ',', '.') ?> L / <?= $posto['capacidade'] ?? 0 ?> L
                   </div>
                 </div>
-              <?php endforeach; ?>
+              </div>
             </div>
-          <?php endif; ?>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Coluna dos botões (direita) -->
+    <div class="col-md-3 mb-4">
+      <div class="d-flex flex-column gap-3">
+        <a href="../lista_veiculos/inserir_veiculo.php" class="btn btn-primary d-flex align-items-center gap-2">
+          <i class="bi bi-truck"></i> Inserir Veículo
+        </a>
+        <a href="../abastecimentos/registar_abast.php" class="btn btn-success d-flex align-items-center gap-2">
+          <i class="bi bi-fuel-pump"></i> Novo Abastecimento
+        </a>
+        <a href="../abastecimentos/importar_excel.php" class="btn btn-warning d-flex align-items-center gap-2 text-dark">
+          <i class="bi bi-upload"></i> Importar da Bomba
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
 
           <div class="row mt-4">
             <!-- Relatórios -->
@@ -597,6 +649,69 @@ function proximoPosto() {
 
 // Mostrar o primeiro posto ao carregar
 mostrarPosto(indexAtual);
+
+// Notificações
+document.addEventListener("DOMContentLoaded", () => {
+  const notificacoes = <?= json_encode($notificacoes) ?>;
+
+  const notiToggle = document.getElementById("notiToggle");
+  const notiList = document.getElementById("notiList");
+  const notiCount = document.getElementById("notiCount");
+  const iconDefault = document.getElementById("icon-default");
+  const iconOpen = document.getElementById("icon-open");
+  const iconAlert = document.getElementById("icon-alert");
+
+  function updateIcons(open = false) {
+    const hasNotifications = notificacoes.length > 0;
+
+    iconDefault.classList.add("d-none");
+    iconOpen.classList.add("d-none");
+    iconAlert.classList.add("d-none");
+
+    if (open) {
+      iconOpen.classList.remove("d-none");
+    } else if (hasNotifications) {
+      iconAlert.classList.remove("d-none");
+    } else {
+      iconDefault.classList.remove("d-none");
+    }
+  }
+
+  function renderNotificacoes() {
+    notiList.innerHTML = "";
+
+    if (notificacoes.length > 0) {
+      notiCount.textContent = notificacoes.length;
+      notiCount.style.display = "inline-block";
+
+      notificacoes.forEach(noti => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a class="dropdown-item" href="#">${noti}</a>`;
+        notiList.appendChild(li);
+      });
+    } else {
+      notiCount.style.display = "none";
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="dropdown-item text-muted">Sem notificações</span>`;
+      notiList.appendChild(li);
+    }
+  }
+
+  // Inicializar dropdown e eventos
+  const dropdown = new bootstrap.Dropdown(notiToggle);
+
+  notiToggle.addEventListener("click", () => {
+    setTimeout(() => {
+      const isOpen = notiToggle.parentElement.classList.contains("show");
+      updateIcons(isOpen);
+    }, 100);
+  });
+
+  renderNotificacoes();
+  updateIcons(false);
+});
+
+
 </script>
   </body>
 </html>
