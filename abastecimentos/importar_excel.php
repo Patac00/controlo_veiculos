@@ -126,16 +126,20 @@ if (isset($_POST['guardar']) && isset($_SESSION['dados_convertidos'])) {
     }
 
 foreach ($dados as $linha) {
-    // ... prepara variáveis (matricula, id_veiculo, etc)
-
     $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $linha['matricula']));
     $id_veiculo = $veiculos[$matriculaLimpa] ?? null;
 
-    if (!$id_veiculo) {
-        echo "<p style='color: red;'>Matrícula <strong>{$linha['matricula']}</strong> não encontrada na base de dados. 
-        <a href='../lista_veiculos/inserir_veiculo.php' target='_blank'>Inserir veículo</a></p>";
-        continue; // Ignora esta linha para não tentar inserir com id_veiculo inválido
-    }
+if (!$id_veiculo) {
+    echo "
+    <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
+        <span>Matrícula <strong>{$linha['matricula']}</strong> não encontrada na base de dados.</span>
+        <a href='../lista_veiculos/inserir_veiculo.php' target='_blank'>
+            <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Inserir veículo</button>
+        </a>
+    </div>";
+    continue;
+}
+
 
     $data = converteData(mysqli_real_escape_string($con, $linha['data']));
     $hora = mysqli_real_escape_string($con, $linha['hora']);
@@ -144,43 +148,61 @@ foreach ($dados as $linha) {
     $motorista = mysqli_real_escape_string($con, $linha['motorista']);
     $quantidade = (float) $linha['quantidade'];
 
-    // Junta data e hora numa só para facilitar comparações
-    $dataHora = $data . ' ' . $hora;
+    // Novo: obter id_posto a partir da unidade
+    $unidade = mysqli_real_escape_string($con, $linha['unidade']);
+    $sql_posto = "SELECT id_posto FROM lista_postos WHERE unidade = '$unidade' LIMIT 1";
+    $res_posto = $con->query($sql_posto);
+    $id_posto = $res_posto && $res_posto->num_rows > 0 ? (int)$res_posto->fetch_assoc()['id_posto'] : 0;
 
-    // 1. Verifica se já existe registo para o veículo com data e hora iguais
+    // Verifica duplicado
     $sql_dup = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND data = '$data' AND hora = '$hora' LIMIT 1";
     $res_dup = $con->query($sql_dup);
     if ($res_dup && $res_dup->num_rows > 0) {
-        echo "<p style='color:red;'>Erro: Já existe um registo para o veículo {$numero_reg} na data {$data} e hora {$hora}.</p>";
+        echo "
+        <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
+            <span>Erro: Já existe um registo para o veículo <strong>{$numero_reg}</strong> na data <strong>{$data}</strong> e hora <strong>{$hora}</strong>.</span>
+        </div>";
         continue;
     }
 
-    // 2. Obter odometro anterior (último antes da data/hora que queremos inserir)
+    // Verifica anterior e seguinte
     $sql_anterior = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data < '$data' OR (data = '$data' AND hora < '$hora')) ORDER BY data DESC, hora DESC LIMIT 1";
     $res_anterior = $con->query($sql_anterior);
     $odometro_anterior = $res_anterior && $res_anterior->num_rows > 0 ? (int)$res_anterior->fetch_assoc()['odometro'] : null;
 
-    // 3. Obter odometro seguinte (primeiro depois da data/hora que queremos inserir)
     $sql_seguinte = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data > '$data' OR (data = '$data' AND hora > '$hora')) ORDER BY data ASC, hora ASC LIMIT 1";
     $res_seguinte = $con->query($sql_seguinte);
     $odometro_seguinte = $res_seguinte && $res_seguinte->num_rows > 0 ? (int)$res_seguinte->fetch_assoc()['odometro'] : null;
 
-    // 4. Validações do odómetro:
     if (!is_null($odometro_anterior) && $odometro <= $odometro_anterior) {
-        echo "<p style='color:red;'>Erro: odómetro {$odometro} deve ser superior ao último registo anterior {$odometro_anterior} para a matrícula {$numero_reg}.</p>";
-        continue;
-    }
-    if (!is_null($odometro_seguinte) && $odometro >= $odometro_seguinte) {
-        echo "<p style='color:red;'>Erro: odómetro {$odometro} deve ser inferior ao próximo registo {$odometro_seguinte} para a matrícula {$numero_reg}.</p>";
+        echo "
+        <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
+            <span>Erro: odómetro <strong>{$odometro}</strong> deve ser superior ao último registo anterior <strong>{$odometro_anterior}</strong> para a matrícula <strong>{$numero_reg}</strong>.</span>
+            <a href='../relatorios/odometros.php?matricula={$numero_reg}' target='_blank'>
+                <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Ver Histórico</button>
+            </a>
+        </div>";
         continue;
     }
 
-    // Depois de passar as validações, faz o INSERT
+    if (!is_null($odometro_seguinte) && $odometro >= $odometro_seguinte) {
+        echo "
+        <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
+            <span>Erro: odómetro <strong>{$odometro}</strong> deve ser inferior ao próximo registo <strong>{$odometro_seguinte}</strong> para a matrícula <strong>{$numero_reg}</strong>.</span>
+            <a href='../relatorios/odometros.php?matricula={$numero_reg}' target='_blank'>
+                <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Ver Histórico</button>
+            </a>
+        </div>";
+        continue;
+    }
+
+
+    // INSERT
     $sql = "INSERT INTO bomba (
                 unidade, data, hora, id_veiculo, numero_reg,
                 odometro, motorista, quantidade, id_posto
             ) VALUES (
-                $unidade, '$data', '$hora', $id_veiculo, '$numero_reg',
+                '$unidade', '$data', '$hora', $id_veiculo, '$numero_reg',
                 $odometro, '$motorista', $quantidade, $id_posto
             )";
 
@@ -194,36 +216,81 @@ foreach ($dados as $linha) {
     unset($_SESSION['dados_convertidos']);
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="pt">
 <head>
     <meta charset="UTF-8" />
-    <title>Importar e Mostrar Excel</title>
+    <title>Importar Ficheiro Excel</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f2f2f2;
+            max-width: 1000px;
             margin: 30px auto;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            background: white;
+            border-radius: 8px;
         }
+
+        h2, h3 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        input[type="file"], input[type="submit"], button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        input[type="submit"], button {
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        input[type="submit"]:hover, button:hover {
+            background-color: #0056b3;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 25px;
         }
+
         th, td {
-            border: 1px solid #ccc;
-            padding: 6px;
+            border: 1px solid #ddd;
+            padding: 8px;
             text-align: center;
         }
+
         th {
             background-color: #007bff;
             color: white;
         }
-        input[type="file"], input[type="submit"], button {
-            margin-top: 15px;
-            padding: 8px 20px;
-            font-size: 16px;
+
+        td {
+            background-color: #f9f9f9;
+        }
+
+        .voltar-btn {
+            display: inline-block;
+            margin-top: 30px;
+            background-color: #6c757d;
+        }
+
+        .voltar-btn:hover {
+            background-color: #5a6268;
         }
     </style>
 </head>
@@ -269,6 +336,10 @@ foreach ($dados as $linha) {
         <button type="submit" name="guardar">Guardar na Base de Dados</button>
     </form>
 <?php endif; ?>
+
+<form action="../html/index.php" method="get" style="text-align: center;">
+    <button class="voltar-btn">Voltar ao Início</button>
+</form>
 
 </body>
 </html>

@@ -424,7 +424,7 @@ $capacidade_total_js = (int)$capacidade_total;
                         <i class="bx bx-dots-vertical-rounded"></i>
                       </button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item" href="../lista_veiculos/ver_lista_veiculos.php">+ detalhes</a>
+                        <a class="dropdown-item" href="../lista_veiculos/ver_lista_veiculos.php">Ver Lista</a>
                       </div>
                     </div>
                   </div>
@@ -448,7 +448,8 @@ $capacidade_total_js = (int)$capacidade_total;
                         <i class="bx bx-dots-vertical-rounded"></i>
                       </button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item" href="#">Ver mais</a>
+                        <a class="dropdown-item" href="../abastecimentos\lista_abastecimento.php">Ver Lista de Abastecimentos</a>
+
                       </div>
                     </div>
                   </div>
@@ -468,12 +469,15 @@ $capacidade_total_js = (int)$capacidade_total;
                       <img src="../assets/img/icons/unicons/wallet-info.png" alt="wallet info" class="rounded" />
                     </div>
                     <div class="dropdown">
+                      <!--
+                    Se não haver necessidade de meter, não meter. É algo irrelevante
+                    
                       <button class="btn p-0" type="button" id="cardOpt3" data-bs-toggle="dropdown">
                         <i class="bx bx-dots-vertical-rounded"></i>
                       </button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item" href="#">+ Detalhes</a>
-                      </div>
+                        <a class="dropdown-item" href="../lista_veiculos/ver_lista_veiculos.php">Ver Lista</a>
+                      </div>-->
                     </div>
                   </div>
                   <span class="fw-semibold d-block mb-1">Veículos em manutenção</span>

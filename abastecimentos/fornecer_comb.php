@@ -308,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <div class="mb-3">
-            <label for="preco_litro" class="form-label">Preço por Litro (€)</label>
+            <label for="preco_litro" class="form-label">Preço por Litro c/ IVA (€)</label>
             <input type="number" step="0.01" name="preco_litro" class="form-control" required />
           </div>
 
@@ -343,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <div class="mb-4">
-            <label for="fatura" class="form-label">Fatura?</label>
+            <label for="fatura" class="form-label">Fatura entregue?</label>
             <select name="fatura" class="form-select" required>
               <option value="Sim">Sim</option>
               <option value="Não">Não</option>
