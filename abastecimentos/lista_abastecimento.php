@@ -179,6 +179,36 @@ $result = mysqli_query($con, $sql);
       cursor: not-allowed;
       color: #666;
     }
+    .action-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .btn-importar {
+      background-color: #4cafef; /* Azul claro */
+      color: white;
+      padding: 8px 14px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+
+    .btn-inserir {
+      background-color: #4caf50; /* Verde */
+      color: white;
+      padding: 8px 14px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+
+    .btn-importar:hover {
+      background-color: #2f8bd1;
+    }
+
+    .btn-inserir:hover {
+      background-color: #3e8e41;
+    }
   </style>
 </head>
 <body>
@@ -186,6 +216,14 @@ $result = mysqli_query($con, $sql);
 <a href="../html/index.php" class="btn-voltar">← Voltar</a>
 
 <h2>Lista de Abastecimentos</h2>
+
+<br>
+
+<div class="action-buttons">
+  <a href="importar_excel.php" class="btn-importar">Importar Bomba</a>
+  <a href="registar_abast.php" class="btn-inserir">Inserir Abastecimento</a>
+</div>
+
 
 <form method="get" action="">
   <table id="abastecimentos-table">
@@ -212,13 +250,12 @@ $result = mysqli_query($con, $sql);
         </th>
       </tr>
       <tr>
-        <th>ID</th>
         <th>Matrícula</th>
         <th>Data</th>
         <th>Local</th>
         <th>Empresa</th>
         <th>Litros</th>
-        <th>Preço/Litro</th>
+        <th>Preço/L c/IVA</th>
         <th>Custo</th>
         <th>Ações</th>
       </tr>
@@ -232,7 +269,7 @@ $result = mysqli_query($con, $sql);
       ?>
       <?php foreach ($rows as $row): ?>
       <tr class="data-row">
-        <td><?= $row['id_abastecimento'] ?? $row['id'] ?></td>
+        <!--<td><?= $row['id_abastecimento'] ?? $row['id'] ?></td> -->
         <td><?= htmlspecialchars($row['matricula'] ?? '') ?></td>
         <td><?= htmlspecialchars($row['data_abastecimento'] ?? '') ?></td>
         <td><?= htmlspecialchars($row['posto_nome'] ?? '') ?></td>

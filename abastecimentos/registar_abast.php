@@ -222,12 +222,17 @@ if ($res_gasoleo && $row_gasoleo = $res_gasoleo->fetch_assoc()) {
     .back-btn:hover {
       text-decoration: underline;
     }
+    #ultimo_km_data, #valor_total {
+      background-color: #f0f0f0; /* Cinza claro */
+      color: #333; /* Texto mais escuro para contraste */
+      border: 1px solid #ccc;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>Registar Abastecimento de Veículos com Matrícula</h2>
+  <h2>Registo de Abastecimento</h2>
 
   <?php if ($msg): ?>
     <div class="msg <?= strpos($msg, 'sucesso') !== false ? 'success' : '' ?>"><?= $msg ?></div>
@@ -243,7 +248,8 @@ if ($res_gasoleo && $row_gasoleo = $res_gasoleo->fetch_assoc()) {
     </select>
 
     <label>Último Registo:</label>
-    <input type="text" id="ultimo_km_data" readonly>
+    <input type="text" id="ultimo_km_data" readonly background-color: #e6e6e6;
+>
 
     <input type="hidden" id="km_anteriores" name="km_anteriores" value="0">
 
@@ -357,6 +363,18 @@ if ($res_gasoleo && $row_gasoleo = $res_gasoleo->fetch_assoc()) {
 
     const kmAtual = parseInt(document.getElementById('km_registados').value);
     const kmAnteriores = parseInt(document.getElementById('km_anteriores').value);
+
+    if (litros <= 0) {
+      e.preventDefault();
+      alert("Erro: Os litros têm de ser maiores que 0.");
+      return false;
+    }
+
+    if (precoLitro <= 0) {
+      e.preventDefault();
+      alert("Erro: O preço por litro tem de ser maior que 0.");
+      return false;
+    }
 
     if (litros > capacidade) {
       e.preventDefault();

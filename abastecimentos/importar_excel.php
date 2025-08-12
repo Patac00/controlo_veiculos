@@ -27,19 +27,17 @@ function converteData($data) {
 
     if (count($partes) !== 3) return $data; // formato inválido, retorna como está
 
-    // tenta detetar o formato
     if (strlen($partes[0]) === 4) {
         // YYYY-MM-DD
         return $data;
     } elseif (strlen($partes[2]) === 4) {
-        // DD-MM-YYYY ou MM-DD-YYYY — tenta adivinhar pelo valor do mês
         $dia = (int)$partes[0];
         $mes = (int)$partes[1];
         if ($dia > 12) {
-            // claramente DD-MM-YYYY
+            // DD-MM-YYYY
             return "{$partes[2]}-{$partes[1]}-{$partes[0]}";
         } else {
-            // assume MM-DD-YYYY
+            // MM-DD-YYYY
             return "{$partes[2]}-{$partes[0]}-{$partes[1]}";
         }
     }
@@ -57,7 +55,6 @@ function validaHora($hora) {
 }
 
 function validaMatricula($matricula) {
-    // Normalizar e validar formato PT: XX-XX-XX ou XX-XXX-XX
     $mat = strtoupper(str_replace([' ', '.', ','], '', $matricula));
     return preg_match('/^[A-Z0-9]{6,7}$/', $mat);
 }
@@ -65,8 +62,6 @@ function validaMatricula($matricula) {
 function validaNumeroPositivo($num) {
     return is_numeric($num) && $num >= 0;
 }
-
-
 
 $dadosConvertidos = [];
 
@@ -86,6 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         exit();
     }
 
+    // Buscar motoristas para mapa codigo_bomba -> nome
+    $mapaMotoristas = [];
+    $resMoto = $con->query("SELECT codigo_bomba, nome FROM motoristas");
+    while ($m = $resMoto->fetch_assoc()) {
+        $mapaMotoristas[strtoupper(trim($m['codigo_bomba']))] = $m['nome'];
+    }
+
     try {
         $spreadsheet = IOFactory::load($arquivoTmp);
         $sheet = $spreadsheet->getActiveSheet();
@@ -94,19 +96,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         foreach ($linhas as $i => $linha) {
             if ($i == 0 || empty($linha[0])) continue; // ignora cabeçalho
 
-                $dadosConvertidos[] = [
-                    'data'       => $linha[0] ?? '',
-                    'hora'       => $linha[1] ?? '',
-                    'unidade'    => $linha[2] ?? '',
-                    'matricula'  => normalizaMatricula($linha[3] ?? ''),
-                    'odometro'   => $linha[4] ?? '',
-                    'motorista'  => normalizaMotorista($linha[5] ?? ''),
-                    'quantidade' => $linha[6] ?? '',
-                ];
-
+            $dadosConvertidos[] = [
+                'data'       => $linha[0] ?? '',
+                'hora'       => $linha[1] ?? '',
+                'unidade'    => $linha[2] ?? '',
+                'matricula'  => normalizaMatricula($linha[3] ?? ''),
+                'odometro'   => $linha[4] ?? '',
+                'motorista'  => normalizaMotorista($linha[5] ?? ''),
+                'quantidade' => $linha[6] ?? '',
+            ];
         }
 
+        // Substituir código do motorista pelo nome
+        foreach ($dadosConvertidos as &$linha) {
+            $codMotorista = strtoupper(trim($linha['motorista']));
+            if (isset($mapaMotoristas[$codMotorista])) {
+                $linha['motorista'] = $mapaMotoristas[$codMotorista];
+            }
+        }
+        unset($linha);
+
         $_SESSION['dados_convertidos'] = $dadosConvertidos;
+
     } catch (Exception $e) {
         echo "<p>Erro ao ler o ficheiro: " . $e->getMessage() . "</p>";
         exit();
@@ -125,92 +136,89 @@ if (isset($_POST['guardar']) && isset($_SESSION['dados_convertidos'])) {
         $veiculos[$matriculaLimpa] = $v['id_veiculo'];
     }
 
-foreach ($dados as $linha) {
-    $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $linha['matricula']));
-    $id_veiculo = $veiculos[$matriculaLimpa] ?? null;
+    foreach ($dados as $linha) {
+        $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $linha['matricula']));
+        $id_veiculo = $veiculos[$matriculaLimpa] ?? null;
 
-if (!$id_veiculo) {
-    echo "
-    <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
-        <span>Matrícula <strong>{$linha['matricula']}</strong> não encontrada na base de dados.</span>
-        <a href='../lista_veiculos/inserir_veiculo.php' target='_blank'>
-            <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Inserir veículo</button>
-        </a>
-    </div>";
-    continue;
-}
+        if (!$id_veiculo) {
+            echo "
+            <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
+                <span>Matrícula <strong>{$linha['matricula']}</strong> não encontrada na base de dados.</span>
+                <a href='../lista_veiculos/inserir_veiculo.php' target='_blank'>
+                    <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Inserir veículo</button>
+                </a>
+            </div>";
+            continue;
+        }
 
+        $data = converteData(mysqli_real_escape_string($con, $linha['data']));
+        $hora = mysqli_real_escape_string($con, $linha['hora']);
+        $numero_reg = mysqli_real_escape_string($con, $linha['matricula']);
+        $odometro = (int) $linha['odometro'];
+        $motorista = mysqli_real_escape_string($con, $linha['motorista']);
+        $quantidade = (float) $linha['quantidade'];
 
-    $data = converteData(mysqli_real_escape_string($con, $linha['data']));
-    $hora = mysqli_real_escape_string($con, $linha['hora']);
-    $numero_reg = mysqli_real_escape_string($con, $linha['matricula']);
-    $odometro = (int) $linha['odometro'];
-    $motorista = mysqli_real_escape_string($con, $linha['motorista']);
-    $quantidade = (float) $linha['quantidade'];
+        // Obter id_posto a partir da unidade
+        $unidade = mysqli_real_escape_string($con, $linha['unidade']);
+        $sql_posto = "SELECT id_posto FROM lista_postos WHERE unidade = '$unidade' LIMIT 1";
+        $res_posto = $con->query($sql_posto);
+        $id_posto = $res_posto && $res_posto->num_rows > 0 ? (int)$res_posto->fetch_assoc()['id_posto'] : 0;
 
-    // Novo: obter id_posto a partir da unidade
-    $unidade = mysqli_real_escape_string($con, $linha['unidade']);
-    $sql_posto = "SELECT id_posto FROM lista_postos WHERE unidade = '$unidade' LIMIT 1";
-    $res_posto = $con->query($sql_posto);
-    $id_posto = $res_posto && $res_posto->num_rows > 0 ? (int)$res_posto->fetch_assoc()['id_posto'] : 0;
+        // Verifica duplicado
+        $sql_dup = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND data = '$data' AND hora = '$hora' LIMIT 1";
+        $res_dup = $con->query($sql_dup);
+        if ($res_dup && $res_dup->num_rows > 0) {
+            echo "
+            <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
+                <span>Erro: Já existe um registo para o veículo <strong>{$numero_reg}</strong> na data <strong>{$data}</strong> e hora <strong>{$hora}</strong>.</span>
+            </div>";
+            continue;
+        }
 
-    // Verifica duplicado
-    $sql_dup = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND data = '$data' AND hora = '$hora' LIMIT 1";
-    $res_dup = $con->query($sql_dup);
-    if ($res_dup && $res_dup->num_rows > 0) {
-        echo "
-        <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
-            <span>Erro: Já existe um registo para o veículo <strong>{$numero_reg}</strong> na data <strong>{$data}</strong> e hora <strong>{$hora}</strong>.</span>
-        </div>";
-        continue;
+        // Verifica anterior e seguinte
+        $sql_anterior = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data < '$data' OR (data = '$data' AND hora < '$hora')) ORDER BY data DESC, hora DESC LIMIT 1";
+        $res_anterior = $con->query($sql_anterior);
+        $odometro_anterior = $res_anterior && $res_anterior->num_rows > 0 ? (int)$res_anterior->fetch_assoc()['odometro'] : null;
+
+        $sql_seguinte = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data > '$data' OR (data = '$data' AND hora > '$hora')) ORDER BY data ASC, hora ASC LIMIT 1";
+        $res_seguinte = $con->query($sql_seguinte);
+        $odometro_seguinte = $res_seguinte && $res_seguinte->num_rows > 0 ? (int)$res_seguinte->fetch_assoc()['odometro'] : null;
+
+        if (!is_null($odometro_anterior) && $odometro <= $odometro_anterior) {
+            echo "
+            <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
+                <span>Erro: odómetro <strong>{$odometro}</strong> deve ser superior ao último registo anterior <strong>{$odometro_anterior}</strong> para a matrícula <strong>{$numero_reg}</strong>.</span>
+                <a href='../relatorios/odometros.php?matricula={$numero_reg}' target='_blank'>
+                    <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Ver Histórico</button>
+                </a>
+            </div>";
+            continue;
+        }
+
+        if (!is_null($odometro_seguinte) && $odometro >= $odometro_seguinte) {
+            echo "
+            <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
+                <span>Erro: odómetro <strong>{$odometro}</strong> deve ser inferior ao próximo registo <strong>{$odometro_seguinte}</strong> para a matrícula <strong>{$numero_reg}</strong>.</span>
+                <a href='../relatorios/odometros.php?matricula={$numero_reg}' target='_blank'>
+                    <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Ver Histórico</button>
+                </a>
+            </div>";
+            continue;
+        }
+
+        // INSERT
+        $sql = "INSERT INTO bomba (
+                    unidade, data, hora, id_veiculo, numero_reg,
+                    odometro, motorista, quantidade, id_posto
+                ) VALUES (
+                    '$unidade', '$data', '$hora', $id_veiculo, '$numero_reg',
+                    $odometro, '$motorista', $quantidade, $id_posto
+                )";
+
+        if (!$con->query($sql)) {
+            echo "Erro na query: " . $con->error;
+        }
     }
-
-    // Verifica anterior e seguinte
-    $sql_anterior = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data < '$data' OR (data = '$data' AND hora < '$hora')) ORDER BY data DESC, hora DESC LIMIT 1";
-    $res_anterior = $con->query($sql_anterior);
-    $odometro_anterior = $res_anterior && $res_anterior->num_rows > 0 ? (int)$res_anterior->fetch_assoc()['odometro'] : null;
-
-    $sql_seguinte = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data > '$data' OR (data = '$data' AND hora > '$hora')) ORDER BY data ASC, hora ASC LIMIT 1";
-    $res_seguinte = $con->query($sql_seguinte);
-    $odometro_seguinte = $res_seguinte && $res_seguinte->num_rows > 0 ? (int)$res_seguinte->fetch_assoc()['odometro'] : null;
-
-    if (!is_null($odometro_anterior) && $odometro <= $odometro_anterior) {
-        echo "
-        <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
-            <span>Erro: odómetro <strong>{$odometro}</strong> deve ser superior ao último registo anterior <strong>{$odometro_anterior}</strong> para a matrícula <strong>{$numero_reg}</strong>.</span>
-            <a href='../relatorios/odometros.php?matricula={$numero_reg}' target='_blank'>
-                <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Ver Histórico</button>
-            </a>
-        </div>";
-        continue;
-    }
-
-    if (!is_null($odometro_seguinte) && $odometro >= $odometro_seguinte) {
-        echo "
-        <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
-            <span>Erro: odómetro <strong>{$odometro}</strong> deve ser inferior ao próximo registo <strong>{$odometro_seguinte}</strong> para a matrícula <strong>{$numero_reg}</strong>.</span>
-            <a href='../relatorios/odometros.php?matricula={$numero_reg}' target='_blank'>
-                <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Ver Histórico</button>
-            </a>
-        </div>";
-        continue;
-    }
-
-
-    // INSERT
-    $sql = "INSERT INTO bomba (
-                unidade, data, hora, id_veiculo, numero_reg,
-                odometro, motorista, quantidade, id_posto
-            ) VALUES (
-                '$unidade', '$data', '$hora', $id_veiculo, '$numero_reg',
-                $odometro, '$motorista', $quantidade, $id_posto
-            )";
-
-    if (!$con->query($sql)) {
-        echo "Erro na query: " . $con->error;
-    }
-}
-
 
     echo "<p style='color: green;'>✅ Dados guardados com sucesso!</p>";
     unset($_SESSION['dados_convertidos']);
