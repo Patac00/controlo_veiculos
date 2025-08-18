@@ -490,8 +490,7 @@ $capacidade_total_js = (int)$capacidade_total;
 
 <div class="container mt-5">
   <h1 class="mb-4">Postos Associados</h1>
-  <div class="row">
-    
+  <div class="row">    
     <!-- Coluna dos postos (esquerda) -->
     <div class="col-md-9">
       <?php if (count($postos) === 0): ?>

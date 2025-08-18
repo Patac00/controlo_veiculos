@@ -6,9 +6,12 @@ if (!isset($_SESSION['id_utilizador'])) {
 }
 
 include("../php/config.php");
-require '../vendor/autoload.php'; 
+require '../vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
+// ===========================
+// Funções de normalização
+// ===========================
 function normalizaMotorista($valor) {
     return trim(strtoupper($valor));
 }
@@ -24,68 +27,40 @@ function normalizaMatricula($valor) {
 function converteData($data) {
     $data = str_replace('/', '-', $data);
     $partes = explode('-', $data);
-
-    if (count($partes) !== 3) return $data; // formato inválido, retorna como está
-
-    if (strlen($partes[0]) === 4) {
-        // YYYY-MM-DD
-        return $data;
-    } elseif (strlen($partes[2]) === 4) {
+    if (count($partes) !== 3) return $data;
+    if (strlen($partes[0]) === 4) return $data;
+    if (strlen($partes[2]) === 4) {
         $dia = (int)$partes[0];
-        $mes = (int)$partes[1];
-        if ($dia > 12) {
-            // DD-MM-YYYY
-            return "{$partes[2]}-{$partes[1]}-{$partes[0]}";
-        } else {
-            // MM-DD-YYYY
-            return "{$partes[2]}-{$partes[0]}-{$partes[1]}";
-        }
+        return $dia > 12 ? "{$partes[2]}-{$partes[1]}-{$partes[0]}" : "{$partes[2]}-{$partes[0]}-{$partes[1]}";
     }
-
     return $data;
 }
 
-function validaData($data) {
-    $d = DateTime::createFromFormat('Y-m-d', converteData($data));
-    return $d && $d->format('Y-m-d') === converteData($data);
-}
-
-function validaHora($hora) {
-    return preg_match('/^(2[0-3]|[01][0-9]):[0-5][0-9](:[0-5][0-9])?$/', $hora);
-}
-
-function validaMatricula($matricula) {
-    $mat = strtoupper(str_replace([' ', '.', ','], '', $matricula));
-    return preg_match('/^[A-Z0-9]{6,7}$/', $mat);
-}
-
-function validaNumeroPositivo($num) {
-    return is_numeric($num) && $num >= 0;
-}
-
+// ===========================
+// Variáveis
+// ===========================
 $dadosConvertidos = [];
+$errosLinhas = [];
 
+// ===========================
+// Upload e leitura do Excel
+// ===========================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
-    if ($_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) {
-        echo "<p>Erro no upload do ficheiro.</p>";
-        exit();
+    if ($_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) { 
+        echo "<p>Erro no upload do ficheiro.</p>"; exit(); 
     }
 
     $arquivoTmp = $_FILES['excel_file']['tmp_name'];
     $tipoMime = mime_content_type($arquivoTmp);
-    if (!in_array($tipoMime, [
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-excel'
-    ])) {
-        echo "<p>Ficheiro inválido. Apenas Excel é permitido.</p>";
-        exit();
+    if (!in_array($tipoMime, ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel'])) {
+        echo "<p>Ficheiro inválido. Apenas Excel é permitido.</p>"; exit();
     }
 
-    // Buscar motoristas para mapa codigo_bomba -> nome
+    // Mapa de motoristas
     $mapaMotoristas = [];
     $resMoto = $con->query("SELECT codigo_bomba, nome FROM motoristas");
-    while ($m = $resMoto->fetch_assoc()) {
-        $mapaMotoristas[strtoupper(trim($m['codigo_bomba']))] = $m['nome'];
+    while ($m = $resMoto->fetch_assoc()) { 
+        $mapaMotoristas[strtoupper(trim($m['codigo_bomba']))] = $m['nome']; 
     }
 
     try {
@@ -94,8 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         $linhas = $sheet->toArray();
 
         foreach ($linhas as $i => $linha) {
-            if ($i == 0 || empty($linha[0])) continue; // ignora cabeçalho
-
+            if ($i === 0 || empty($linha[0])) continue;
             $dadosConvertidos[] = [
                 'data'       => $linha[0] ?? '',
                 'hora'       => $linha[1] ?? '',
@@ -110,243 +84,182 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         // Substituir código do motorista pelo nome
         foreach ($dadosConvertidos as &$linha) {
             $codMotorista = strtoupper(trim($linha['motorista']));
-            if (isset($mapaMotoristas[$codMotorista])) {
-                $linha['motorista'] = $mapaMotoristas[$codMotorista];
-            }
+            if (isset($mapaMotoristas[$codMotorista])) $linha['motorista'] = $mapaMotoristas[$codMotorista];
         }
         unset($linha);
 
         $_SESSION['dados_convertidos'] = $dadosConvertidos;
 
-    } catch (Exception $e) {
-        echo "<p>Erro ao ler o ficheiro: " . $e->getMessage() . "</p>";
-        exit();
+    } catch (Exception $e) { 
+        echo "<p>Erro ao ler o ficheiro: " . $e->getMessage() . "</p>"; 
+        exit(); 
     }
 }
 
-// Guardar dados na BD
+// ===========================
+// Guardar dados na Base de Dados
+// ===========================
 if (isset($_POST['guardar']) && isset($_SESSION['dados_convertidos'])) {
     $dados = $_SESSION['dados_convertidos'];
 
     // Buscar veículos
     $veiculos = [];
     $res = $con->query("SELECT id_veiculo, Matricula FROM veiculos");
-    while ($v = $res->fetch_assoc()) {
-        $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $v['Matricula']));
-        $veiculos[$matriculaLimpa] = $v['id_veiculo'];
+    while ($v = $res->fetch_assoc()) { 
+        $veiculos[strtoupper(str_replace(['-', ' '], '', $v['Matricula']))] = $v['id_veiculo']; 
     }
 
-    foreach ($dados as $linha) {
+    foreach ($dados as $i => $linha) {
+        $erros = [];
+
+        // ===========================
+        // Validações obrigatórias
+        // ===========================
+        if (empty($linha['data'])) $erros[] = "Data é obrigatória";
+        if (empty($linha['hora'])) $erros[] = "Hora é obrigatória";
+        if (empty($linha['matricula'])) $erros[] = "Matrícula é obrigatória";
+        if (empty($linha['odometro'])) $erros[] = "Odómetro é obrigatório";
+        if (empty($linha['quantidade'])) $erros[] = "Quantidade é obrigatória";
+        if (empty($linha['motorista'])) $erros[] = "Motorista é obrigatório";
+        if (empty($linha['unidade'])) $erros[] = "Unidade é obrigatória";
+
         $matriculaLimpa = strtoupper(str_replace(['-', ' '], '', $linha['matricula']));
         $id_veiculo = $veiculos[$matriculaLimpa] ?? null;
+        if (!$id_veiculo) $erros[] = "Matrícula <strong>{$linha['matricula']}</strong> não encontrada.";
 
-        if (!$id_veiculo) {
-            echo "
-            <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
-                <span>Matrícula <strong>{$linha['matricula']}</strong> não encontrada na base de dados.</span>
-                <a href='../lista_veiculos/inserir_veiculo.php' target='_blank'>
-                    <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Inserir veículo</button>
-                </a>
-            </div>";
-            continue;
+        $data = converteData($linha['data']);
+        $hora = $linha['hora'];
+        $odometro = (int)$linha['odometro'];
+        $quantidade = (float)$linha['quantidade'];
+
+        if ($odometro <= 0) $erros[] = "Odómetro deve ser positivo.";
+        if ($quantidade <= 0) $erros[] = "Quantidade deve ser positiva.";
+
+        // Id posto
+        $res_posto = $con->prepare("SELECT id_posto FROM lista_postos WHERE unidade=? LIMIT 1");
+        $res_posto->bind_param("s",$linha['unidade']);
+        $res_posto->execute();
+        $res_posto->bind_result($id_posto);
+        $res_posto->fetch();
+        $res_posto->close();
+        $id_posto = $id_posto ?? 0;
+
+        // ===========================
+        // Verificação de duplicados
+        // ===========================
+        if (empty($erros) && $id_veiculo) {
+            $stmtDup = $con->prepare("SELECT id_bomba FROM bomba WHERE id_veiculo=? AND data=? AND hora=? AND odometro=? LIMIT 1");
+            $stmtDup->bind_param("issi", $id_veiculo, $data, $hora, $odometro);
+            $stmtDup->execute();
+            $stmtDup->store_result();
+            if ($stmtDup->num_rows > 0) $erros[] = "⚠️ Registo duplicado detectado!";
+            $stmtDup->close();
         }
 
-        $data = converteData(mysqli_real_escape_string($con, $linha['data']));
-        $hora = mysqli_real_escape_string($con, $linha['hora']);
-        $numero_reg = mysqli_real_escape_string($con, $linha['matricula']);
-        $odometro = (int) $linha['odometro'];
-        $motorista = mysqli_real_escape_string($con, $linha['motorista']);
-        $quantidade = (float) $linha['quantidade'];
-
-        // Obter id_posto a partir da unidade
-        $unidade = mysqli_real_escape_string($con, $linha['unidade']);
-        $sql_posto = "SELECT id_posto FROM lista_postos WHERE unidade = '$unidade' LIMIT 1";
-        $res_posto = $con->query($sql_posto);
-        $id_posto = $res_posto && $res_posto->num_rows > 0 ? (int)$res_posto->fetch_assoc()['id_posto'] : 0;
-
-        // Verifica duplicado
-        $sql_dup = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND data = '$data' AND hora = '$hora' LIMIT 1";
-        $res_dup = $con->query($sql_dup);
-        if ($res_dup && $res_dup->num_rows > 0) {
-            echo "
-            <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
-                <span>Erro: Já existe um registo para o veículo <strong>{$numero_reg}</strong> na data <strong>{$data}</strong> e hora <strong>{$hora}</strong>.</span>
-            </div>";
-            continue;
+        // ===========================
+        // Inserção
+        // ===========================
+        if (empty($erros) && $id_veiculo) {
+            $stmt = $con->prepare("INSERT INTO bomba (unidade,data,hora,id_veiculo,numero_reg,odometro,motorista,quantidade,id_posto) 
+                VALUES (?,?,?,?,?,?,?,?,?)");
+            $stmt->bind_param("sssisisdi", $linha['unidade'], $data, $hora, $id_veiculo, $linha['matricula'], $odometro, $linha['motorista'], $quantidade, $id_posto);
+            if (!$stmt->execute()) $erros[] = "Erro no insert: " . $stmt->error;
+            $stmt->close();
         }
 
-        // Verifica anterior e seguinte
-        $sql_anterior = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data < '$data' OR (data = '$data' AND hora < '$hora')) ORDER BY data DESC, hora DESC LIMIT 1";
-        $res_anterior = $con->query($sql_anterior);
-        $odometro_anterior = $res_anterior && $res_anterior->num_rows > 0 ? (int)$res_anterior->fetch_assoc()['odometro'] : null;
-
-        $sql_seguinte = "SELECT odometro FROM bomba WHERE id_veiculo = $id_veiculo AND (data > '$data' OR (data = '$data' AND hora > '$hora')) ORDER BY data ASC, hora ASC LIMIT 1";
-        $res_seguinte = $con->query($sql_seguinte);
-        $odometro_seguinte = $res_seguinte && $res_seguinte->num_rows > 0 ? (int)$res_seguinte->fetch_assoc()['odometro'] : null;
-
-        if (!is_null($odometro_anterior) && $odometro <= $odometro_anterior) {
-            echo "
-            <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
-                <span>Erro: odómetro <strong>{$odometro}</strong> deve ser superior ao último registo anterior <strong>{$odometro_anterior}</strong> para a matrícula <strong>{$numero_reg}</strong>.</span>
-                <a href='../relatorios/odometros.php?matricula={$numero_reg}' target='_blank'>
-                    <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Ver Histórico</button>
-                </a>
-            </div>";
-            continue;
-        }
-
-        if (!is_null($odometro_seguinte) && $odometro >= $odometro_seguinte) {
-            echo "
-            <div style='color: red; display: flex; justify-content: space-between; align-items: center; border: 1px solid red; padding: 8px; margin: 5px 0;'>
-                <span>Erro: odómetro <strong>{$odometro}</strong> deve ser inferior ao próximo registo <strong>{$odometro_seguinte}</strong> para a matrícula <strong>{$numero_reg}</strong>.</span>
-                <a href='../relatorios/odometros.php?matricula={$numero_reg}' target='_blank'>
-                    <button style='background-color: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer;'>Ver Histórico</button>
-                </a>
-            </div>";
-            continue;
-        }
-
-        // INSERT
-        $sql = "INSERT INTO bomba (
-                    unidade, data, hora, id_veiculo, numero_reg,
-                    odometro, motorista, quantidade, id_posto
-                ) VALUES (
-                    '$unidade', '$data', '$hora', $id_veiculo, '$numero_reg',
-                    $odometro, '$motorista', $quantidade, $id_posto
-                )";
-
-        if (!$con->query($sql)) {
-            echo "Erro na query: " . $con->error;
-        }
+        if (!empty($erros)) $errosLinhas[$i] = ['mensagem' => implode('<br>', $erros), 'linha' => $linha];
     }
 
-    echo "<p style='color: green;'>✅ Dados guardados com sucesso!</p>";
-    unset($_SESSION['dados_convertidos']);
+    if (!empty($errosLinhas)) $_SESSION['erros_linhas'] = $errosLinhas;
+    else unset($_SESSION['dados_convertidos']);
+
+    echo "<p style='color: green; text-align:center;'>✅ Processamento concluído!</p>";
+}
+
+// ===========================
+// Limpar sessão
+// ===========================
+if (isset($_POST['limpar'])) {
+    unset($_SESSION['dados_convertidos'], $_SESSION['erros_linhas']);
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8" />
-    <title>Importar Ficheiro Excel</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #f2f2f2;
-            max-width: 1000px;
-            margin: 30px auto;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            background: white;
-            border-radius: 8px;
-        }
-
-        h2, h3 {
-            text-align: center;
-            color: #333;
-        }
-
-        form {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        input[type="file"], input[type="submit"], button {
-            margin: 10px;
-            padding: 10px 20px;
-            font-size: 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        input[type="submit"], button {
-            background-color: #007bff;
-            color: white;
-            transition: background-color 0.3s;
-        }
-
-        input[type="submit"]:hover, button:hover {
-            background-color: #0056b3;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 25px;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-
-        td {
-            background-color: #f9f9f9;
-        }
-
-        .voltar-btn {
-            display: inline-block;
-            margin-top: 30px;
-            background-color: #6c757d;
-        }
-
-        .voltar-btn:hover {
-            background-color: #5a6268;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Importar Excel</title>
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+}
+h2,h3 { text-align:center; margin-bottom:20px; }
+input,button { margin:5px; padding:8px 15px; font-size:15px; border-radius:5px; }
+button,input[type="submit"] { background:#007bff; color:#fff; border:none; cursor:pointer; }
+button:hover,input[type="submit"]:hover { background:#0056b3; }
+table { width:100%; border-collapse: collapse; font-size:14px; margin-top:20px; }
+th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+th { background-color:#007bff; color:#fff; }
+td { background-color:#f9f9f9; word-wrap:break-word; }
+.erro td { background-color:#ffe5e5; }
+input[readonly] { background-color:#e9ecef; border:none; text-align:center; }
+</style>
 </head>
 <body>
 
-<h2>Importar Ficheiro Excel</h2>
+<form method="post" style="text-align:center;margin-bottom:20px;">
+    <button type="submit" name="limpar">Limpar dados</button>
+</form>
 
-<form method="post" enctype="multipart/form-data">
+<h2>Importar Ficheiro Excel</h2>
+<form method="post" enctype="multipart/form-data" style="text-align:center;">
     <input type="file" name="excel_file" accept=".xls,.xlsx" required>
     <input type="submit" value="Importar">
 </form>
 
-<?php if (!empty($dadosConvertidos)): ?>
-    <h3>Dados Convertidos:</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Hora</th>
-                <th>Matrícula</th>
-                <th>Odómetro</th>
-                <th>Motorista</th>
-                <th>Quantidade</th>
-                <th>Unidade</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($dadosConvertidos as $linha): ?>
-                <tr>
-                    <td><?= htmlspecialchars($linha['data']) ?></td>
-                    <td><?= htmlspecialchars($linha['hora']) ?></td>
-                    <td><?= htmlspecialchars($linha['matricula']) ?></td>
-                    <td><?= htmlspecialchars($linha['odometro']) ?></td>
-                    <td><?= htmlspecialchars($linha['motorista']) ?></td>
-                    <td><?= htmlspecialchars($linha['quantidade']) ?></td>
-                    <td><?= htmlspecialchars($linha['unidade']) ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+<?php if (!empty($_SESSION['dados_convertidos'])): ?>
+<h3>Dados Convertidos:</h3>
+<table>
+<thead>
+<tr>
+<th>Data</th><th>Hora</th><th>Matrícula</th><th>Odómetro</th><th>Motorista</th><th>Quantidade</th><th>Unidade</th><th>Erro</th>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($_SESSION['dados_convertidos'] as $index => $linha):
+$temErro = isset($_SESSION['erros_linhas'][$index]);
+?>
+<tr class="<?= $temErro ? 'erro' : '' ?>">
+<td><input type="text" value="<?= htmlspecialchars($linha['data']) ?>" <?= $temErro?'':'readonly' ?>></td>
+<td><input type="text" value="<?= htmlspecialchars($linha['hora']) ?>" <?= $temErro?'':'readonly' ?>></td>
+<td><input type="text" value="<?= htmlspecialchars($linha['matricula']) ?>" <?= $temErro?'':'readonly' ?>></td>
+<td><input type="number" value="<?= htmlspecialchars($linha['odometro']) ?>" <?= $temErro?'':'readonly' ?>></td>
+<td><input type="text" value="<?= htmlspecialchars($linha['motorista']) ?>" <?= $temErro?'':'readonly' ?>></td>
+<td><input type="number" value="<?= htmlspecialchars($linha['quantidade']) ?>" <?= $temErro?'':'readonly' ?>></td>
+<td><input type="text" value="<?= htmlspecialchars($linha['unidade']) ?>" <?= $temErro?'':'readonly' ?>></td>
+<td>
+<?php if($temErro): ?>
+<?= $_SESSION['erros_linhas'][$index]['mensagem'] ?>
+<br><a href="../lista_veiculos/inserir_veiculo.php" target="_blank"><button type="button">Inserir veículo</button></a>
+<?php endif; ?>
+</td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
 
-    <form method="post">
-        <button type="submit" name="guardar">Guardar na Base de Dados</button>
-    </form>
+<form method="post" style="text-align:center;margin-top:20px;">
+    <button type="submit" name="guardar">Guardar na Base de Dados</button>
+</form>
 <?php endif; ?>
 
-<form action="../html/index.php" method="get" style="text-align: center;">
-    <button class="voltar-btn">Voltar ao Início</button>
+<form action="../html/index.php" style="text-align:center;margin-top:20px;">
+<button>Voltar ao Início</button>
 </form>
 
 </body>
